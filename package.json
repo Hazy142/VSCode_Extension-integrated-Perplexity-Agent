@@ -1,0 +1,26 @@
+{
+  "name": "perplexity-vscode-extension",
+  "displayName": "Perplexity Pro Extension for VSCode",
+  "description": "Agent-driven AI research, deep workspace analysis, and intelligent chat directly in the editor.",
+  "version": "0.1.0",
+  "publisher": "your-publisher",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^18.17.0",
+    "@vscode/test-electron": "^2.3.9",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0"
+  }
+}
