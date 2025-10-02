@@ -1,0 +1,5 @@
+{
+  "name": "Perplexity VSCode Extension UI",
+  "description": "A React-based user interface simulating a VSCode extension for interacting with an AI, inspired by the Perplexity extension project plan. It features a chat interface, tool and settings panels, and rich content rendering.",
+  "requestFramePermissions": []
+}
