@@ -9,6 +9,7 @@ yarn.lock
 # VSCode
 .vscode/
 !.vscode/launch.json
+.vscode-test/
 
 # Logs
 npm-debug.log*
