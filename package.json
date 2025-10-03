@@ -21,7 +21,7 @@
   "scripts": {
     "vscode:prepublish": "npm run compile && npm run build:webview",
     "compile": "tsc -p ./tsconfig.json",
-    "build:webview": "cd webview && npm install && npm run build",
+    "build:webview": "npm run build --prefix webview",
     "watch": "tsc -watch -p ./tsconfig.json",
     "lint": "eslint src --ext ts",
     "test": "node ./out/src/test/runTest.js"
