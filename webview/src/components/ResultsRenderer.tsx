@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { SearchResult, Source } from '../types';
+import { SearchResult, Source } from '../../types';
 import CodeBlock from './CodeBlock';
 
 interface ResultsRendererProps {

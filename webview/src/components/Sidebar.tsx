@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { View } from '../types';
+import { View } from '../../types';
 import { Icon } from './Icon';
 
 interface SidebarProps {

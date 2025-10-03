@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChatMessage as ChatMessageType, Role } from '../types';
+import { ChatMessage as ChatMessageType, Role } from '../../types';
 import { Icon } from './Icon';
 import ResultsRenderer from './ResultsRenderer';
 

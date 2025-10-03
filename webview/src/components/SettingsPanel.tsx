@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ExtensionConfig } from '../types';
+import { ExtensionConfig } from '../../types.ts';
 
 interface SettingsPanelProps {
   config: ExtensionConfig;

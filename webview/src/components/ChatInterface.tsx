@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect } from 'react';
-import { ChatMessage as ChatMessageType } from '../types';
+import { ChatMessage as ChatMessageType } from '../../types';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 

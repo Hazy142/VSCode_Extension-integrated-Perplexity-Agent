@@ -3,7 +3,7 @@
   "displayName": "Perplexity Pro Extension",
   "description": "Eine VSCode-Erweiterung, die Perplexity AI integriert.",
   "version": "0.1.0",
-  "publisher": "IhrName",
+  "publisher": "Hazy142",
   "main": "./out/extension.js",
   "engines": {
     "vscode": "^1.85.0"

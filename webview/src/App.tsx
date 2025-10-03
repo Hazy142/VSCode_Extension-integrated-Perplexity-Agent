@@ -1,12 +1,15 @@
 
-import React, { useState, useCallback } from 'react';
-import Sidebar from '../components/Sidebar.js';
-import ChatInterface from '../components/ChatInterface.js';
-import ToolsPanel from '../components/ToolsPanel.js';
-import SettingsPanel from '../components/SettingsPanel.js';
-import { View, ChatMessage, Role, ExtensionConfig } from '../types.js';
-import { fetchChatResponse } from '../services/geminiService.js';
-import { INITIAL_MESSAGES, INITIAL_CONFIG } from '../constants.js';
+import React, { useState, useCallback, useEffect } from 'react';
+import Sidebar from './components/Sidebar';
+import ChatInterface from './components/ChatInterface';
+import ToolsPanel from './components/ToolsPanel';
+import SettingsPanel from './components/SettingsPanel';
+import { View, ChatMessage, Role, ExtensionConfig, SearchResult } from '../types';
+// import { fetchChatResponse } from './services/geminiService'; // No longer needed
+import { INITIAL_MESSAGES, INITIAL_CONFIG } from '../constants';
+
+import { vscodeApi as vscode } from './services/vscodeService';
+
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>(View.Chat);
@@ -14,7 +17,43 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [config, setConfig] = useState<ExtensionConfig>(INITIAL_CONFIG);
 
-  const handleSendMessage = useCallback(async (content: string) => {
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data; // The JSON data from the extension
+      switch (message.command) {
+        case 'searchResult': {
+          setIsLoading(false);
+          const assistantMessage: ChatMessage = {
+            id: Date.now().toString(),
+            role: Role.Assistant,
+            content: message.data as SearchResult,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+          break;
+        }
+        case 'error': {
+          setIsLoading(false);
+          const errorMessage: ChatMessage = {
+            id: Date.now().toString(),
+            role: Role.Assistant,
+            content: `An error occurred: ${message.message}`,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, errorMessage]);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  const handleSendMessage = useCallback((content: string) => {
     if (isLoading || !content.trim()) return;
 
     const userMessage: ChatMessage = {
@@ -24,24 +63,13 @@ const App: React.FC = () => {
       timestamp: new Date(),
     };
 
-    setMessages((prev: ChatMessage[]) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    try {
-      const assistantMessage = await fetchChatResponse(content);
-      setMessages((prev: ChatMessage[]) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error("Error fetching AI response:", error);
-      const errorMessage: ChatMessage = {
-        id: Date.now().toString(),
-        role: Role.Assistant,
-        content: "Sorry, I encountered an error. Please try again.",
-        timestamp: new Date(),
-      };
-      setMessages((prev: ChatMessage[]) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+    vscode.postMessage({
+      command: 'search',
+      text: content
+    });
   }, [isLoading]);
 
   const renderActiveView = () => {

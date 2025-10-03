@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TOOLS } from '../constants';
+import { TOOLS } from '../../constants';
 
 const ToolsPanel: React.FC = () => {
   return (

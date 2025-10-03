@@ -31,10 +31,11 @@ export interface ExtensionConfig {
   defaultModel: PerplexityModel;
 }
 
-export interface SearchResult {
-  answer: string;
-  sources: Source[];
-  followUpQuestions: string[];
+export interface Tool {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 export interface Source {
@@ -43,9 +44,8 @@ export interface Source {
   snippet: string;
 }
 
-export interface Tool {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
+export interface SearchResult {
+  answer: string;
+  sources: Source[];
+  followUpQuestions: string[];
 }
