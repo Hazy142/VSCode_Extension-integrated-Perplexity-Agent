@@ -10,13 +10,17 @@
     "sourceMap": true,
     "strict": true,
     "esModuleInterop": true,
-    "rootDir": "src"
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "rootDir": "."
   },
   "include": [
-    "src/**/*"
+    "src/**/*.ts",
+    "types.ts"
   ],
   "exclude": [
     "node_modules",
-    ".vscode-test"
+    ".vscode-test",
+    "webview"
   ]
 }
