@@ -4,23 +4,23 @@ import * as fs from 'fs';
 import { PerplexityClient } from './services/PerplexityClient.js';
 import { startMCPServer } from './services/MCPServer.js';
 
+import { ChildProcess } from 'child_process';
+
 let perplexityClient: PerplexityClient | undefined;
-let mcpServerStarted = false;
+export let mcpServerProcess: ChildProcess | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('[Perplexity] Extension is activating...');
 
+    // Start the MCP server in a separate process immediately on activation.
+    // This ensures the server is ready when any command needs it.
+    console.log('[Perplexity] Initializing services...');
+    mcpServerProcess = startMCPServer(context);
+
     const showChatCommand = vscode.commands.registerCommand('perplexity-vscode.showChat', async () => {
-        // 1. Initialisieren Sie die Dienste erst, wenn sie benötigt werden (Lazy Loading)
+        // Lazy load the PerplexityClient only when the chat command is executed.
         if (!perplexityClient) {
             perplexityClient = new PerplexityClient();
-        }
-        if (!mcpServerStarted) {
-            startMCPServer().catch(error => {
-                console.error("Failed to start MCP Server:", error);
-                vscode.window.showErrorMessage("Perplexity Pro: Failed to start MCP Server.");
-            });
-            mcpServerStarted = true;
         }
 
         const panel = vscode.window.createWebviewPanel(
@@ -39,8 +39,13 @@ export function activate(context: vscode.ExtensionContext) {
         panel.webview.onDidReceiveMessage(
             async (message) => {
                 if (message.command === 'search') {
+                    if (!perplexityClient) {
+                        // This should not happen if the command is executed correctly, but it's a good safeguard.
+                        vscode.window.showErrorMessage("Perplexity client not initialized.");
+                        return;
+                    }
                     try {
-                        const results = await perplexityClient?.search(message.text);
+                        const results = await perplexityClient.search(message.text);
                         panel.webview.postMessage({ command: 'searchResult', data: results });
                     } catch (error: any) {
                         panel.webview.postMessage({ command: 'error', message: error.message });
