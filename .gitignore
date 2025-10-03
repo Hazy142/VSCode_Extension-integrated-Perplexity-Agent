@@ -21,3 +21,4 @@ yarn-error.log*
 *.pem
 
 /webview/node_modules
+/webview/dist
