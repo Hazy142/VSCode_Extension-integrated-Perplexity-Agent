@@ -6,9 +6,18 @@
     "sourceMap": true,
     "rootDir": "src",
     "strict": true,
-    "moduleResolution": "bundler",
-    "outDir": "out",
-    "types": ["node"] // <-- WICHTIGE ERGÄNZUNG
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "rootDir": "."
   },
-  "include": ["src"]
+  "include": [
+    "src/**/*.ts",
+    "types.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".vscode-test",
+    "webview"
+  ]
 }

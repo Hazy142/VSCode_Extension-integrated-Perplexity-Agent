@@ -1,7 +1,7 @@
 import React from 'react';
-import { ChatMessage as ChatMessageType, Role } from '../types.js';
-import { Icon } from './Icon.js';
-import ResultsRenderer from './ResultsRenderer.js';
+import { ChatMessage as ChatMessageType, Role } from '../types';
+import { Icon } from './Icon';
+import ResultsRenderer from './ResultsRenderer';
 
 interface ChatMessageProps {
   message?: ChatMessageType;

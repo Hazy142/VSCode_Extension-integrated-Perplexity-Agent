@@ -18,11 +18,11 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "build:webview": "cd webview && npm run build",
-    "test": "node ./out/test/runTest.js"
+    "vscode:prepublish": "cd webview && npm install && npm run build && cd .. && npm run compile",
+    "compile": "tsc -p ./tsconfig.json",
+    "watch": "tsc -watch -p ./tsconfig.json",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/src/test/runTest.js"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",

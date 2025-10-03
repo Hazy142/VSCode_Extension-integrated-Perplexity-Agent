@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Icon } from './Icon.js';
+import { Icon } from './Icon';
 
 interface CodeBlockProps {
   language: string;

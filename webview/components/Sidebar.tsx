@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { View } from '../types.js';
-import { Icon } from './Icon.js';
+import { View } from '../types';
+import { Icon } from './Icon';
 
 interface SidebarProps {
   activeView: View;

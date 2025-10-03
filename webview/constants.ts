@@ -1,6 +1,6 @@
 
-import { ChatMessage, Role, Tool, ExtensionConfig } from './types.js';
-import { Icon } from './components/Icon.js';
+import { ChatMessage, Role, Tool, ExtensionConfig } from './types';
+import { Icon } from './components/Icon';
 
 export const INITIAL_MESSAGES: ChatMessage[] = [
   {
@@ -33,9 +33,6 @@ export const TOOLS: Tool[] = [
 ];
 
 export const INITIAL_CONFIG: ExtensionConfig = {
-    apiKey: '',
-    model: 'sonar-pro',
-    temperature: 0.7,
     apiKeyStatus: 'unconfigured',
     defaultModel: 'sonar-pro',
     maxTokens: 2048,

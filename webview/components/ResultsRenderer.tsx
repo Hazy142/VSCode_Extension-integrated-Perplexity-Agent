@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { SearchResult, Source } from '../types.js';
-import CodeBlock from './CodeBlock.js';
+import { SearchResult, Source } from '../types';
+import CodeBlock from './CodeBlock';
 
 interface ResultsRendererProps {
   result: string | SearchResult;
