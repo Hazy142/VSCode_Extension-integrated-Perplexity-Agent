@@ -1,36 +1,41 @@
 {
   "name": "perplexity-vscode-extension",
-  "displayName": "Perplexity Pro Extension for VSCode",
-  "description": "Agent-driven AI research, deep workspace analysis, and intelligent chat directly in the editor.",
+  "displayName": "Perplexity Pro Extension",
+  "description": "Eine VSCode-Erweiterung, die Perplexity AI integriert.",
   "version": "0.1.0",
-  "publisher": "your-publisher",
-  "type": "module",
+  "publisher": "IhrName",
+  "main": "./out/extension.js",
   "engines": {
     "vscode": "^1.85.0"
   },
-  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "perplexity-vscode.showChat",
+        "title": "Perplexity: Chat anzeigen"
+      }
+    ]
+  },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts",
+    "build:webview": "cd webview && npm run build",
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^18.17.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^24.6.2",
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.3.9",
-    "eslint": "^8.56.0",
-    "glob": "^11.0.3",
-    "mocha": "^11.7.4",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.19.1",
-    "axios": "^1.12.2",
-    "zod": "^3.23.8",
-    "zod-to-json-schema": "^3.24.6"
+    "@types/glob": "^8.1.0",
+    "axios": "^1.6.8",
+    "glob": "^11.0.3",
+    "zod": "^3.25.76"
   }
 }
