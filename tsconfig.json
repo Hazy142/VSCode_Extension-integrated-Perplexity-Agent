@@ -1,13 +1,10 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "target": "es2022",
-    "outDir": "out",
-    "lib": [
-      "es2022"
-    ],
+    "module": "ESNext",
+    "target": "ES2022",
+    "lib": ["ES2022"], // Behält die moderne JavaScript-Bibliothek
     "sourceMap": true,
+    "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
