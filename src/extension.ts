@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { PerplexityClient } from './services/PerplexityClient.js';
-import { startMCPServer } from './services/MCPServer.js';
+import { PerplexityClient } from './services/PerplexityClient';
+import { startMCPServer } from './services/MCPServer';
 
 import { ChildProcess } from 'child_process';
 
