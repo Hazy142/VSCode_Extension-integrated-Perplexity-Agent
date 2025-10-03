@@ -12,10 +12,11 @@ export function startMCPServer(context: vscode.ExtensionContext) {
     // Path to the compiled server runner script
     const serverRunnerPath = path.join(context.extensionPath, 'out', 'src', 'mcp-server-runner.js');
 
-    // Use 'node' to execute the script.
-    const serverProcess = spawn('node', [serverRunnerPath], {
+    // Use the same Node.js executable that is running the extension host.
+    const serverProcess = spawn(process.execPath, [serverRunnerPath], {
         stdio: ['pipe', 'pipe', 'pipe'], // stdin, stdout, stderr
-        shell: false
+        shell: false,
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }
     });
 
     // Log stdout from the server process for debugging
