@@ -8,7 +8,7 @@
   "engines": {
     "vscode": "^1.85.0"
   }, "activationEvents": [
-    "onCommand:perplexity-vscode.showChat"
+    "onView:perplexity.chat"
   ],
   "contributes": {
     "commands": [
@@ -16,7 +16,25 @@
         "command": "perplexity-vscode.showChat",
         "title": "Perplexity: Chat anzeigen"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "perplexity-container",
+          "title": "Perplexity",
+          "icon": "assets/perplexity-logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "perplexity-container": [
+        {
+          "id": "perplexity.chat",
+          "name": "Chat",
+          "type": "webview"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile && npm run build:webview",
