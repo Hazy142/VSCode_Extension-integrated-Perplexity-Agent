@@ -33,10 +33,10 @@ export const TOOLS: Tool[] = [
 ];
 
 export const INITIAL_CONFIG: ExtensionConfig = {
-    apiKey: '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',
+    apiKey: 'xxx',
     model: 'sonar-pro',
     temperature: 0.7,
-    apiKeyStatus: 'valid',
+    apiKeyStatus: 'false',
     defaultModel: 'sonar-pro',
     maxTokens: 2048,
     theme: 'dark',
