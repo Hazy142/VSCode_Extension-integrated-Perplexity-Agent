@@ -33,10 +33,10 @@ export const TOOLS: Tool[] = [
 ];
 
 export const INITIAL_CONFIG: ExtensionConfig = {
-    apiKey: 'xxx',
+    apiKey: '',
     model: 'sonar-pro',
     temperature: 0.7,
-    apiKeyStatus: 'false',
+    apiKeyStatus: 'unconfigured',
     defaultModel: 'sonar-pro',
     maxTokens: 2048,
     theme: 'dark',
