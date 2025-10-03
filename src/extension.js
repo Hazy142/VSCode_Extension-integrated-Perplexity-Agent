@@ -13,7 +13,7 @@ export function activate(context) {
     });
     let panel;
     // Register the command to show the chat webview
-    const showChatCommand = vscode.commands.registerCommand('perplexity.showChat', () => {
+    const showChatCommand = vscode.commands.registerCommand('perplexity-vscode.showChat', () => {
         const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
         if (panel) {
             panel.reveal(column);
