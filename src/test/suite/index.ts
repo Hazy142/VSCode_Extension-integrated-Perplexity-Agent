@@ -1,5 +1,5 @@
 import * as path from 'path';
-import Mocha from 'mocha';
+import * as Mocha from 'mocha';
 import { glob } from 'glob';
 
 export async function run(): Promise<void> {
@@ -12,7 +12,7 @@ export async function run(): Promise<void> {
 	const testsRoot = path.resolve(__dirname, '..');
 
 	// Use glob to find all test files
-	const files = await glob('**/**.test.js', { cwd: testsRoot });
+	const files = glob.sync('**/**.test.js', { cwd: testsRoot });
 
 	// Add files to the test suite
 	files.forEach((f: string) => mocha.addFile(path.resolve(testsRoot, f)));
@@ -20,7 +20,7 @@ export async function run(): Promise<void> {
 	// Run the mocha test
 	return new Promise((resolve, reject) => {
 		try {
-			mocha.run(failures => {
+			mocha.run((failures: number) => {
 				if (failures > 0) {
 					reject(new Error(`${failures} tests failed.`));
 				} else {

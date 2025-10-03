@@ -4,11 +4,10 @@
   "description": "Eine VSCode-Erweiterung, die Perplexity AI integriert.",
   "version": "0.1.0",
   "publisher": "Hazy142",
-  "main": "./out/extension.js",
+  "main": "./out/src/extension.js",
   "engines": {
     "vscode": "^1.85.0"
-  },
-  "activationEvents": [
+  }, "activationEvents": [
     "onCommand:perplexity-vscode.showChat"
   ],
   "contributes": {
@@ -20,24 +19,26 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "cd webview && npm install && npm run build && cd .. && npm run compile",
+    "vscode:prepublish": "npm run compile && npm run build:webview",
     "compile": "tsc -p ./tsconfig.json",
+    "build:webview": "cd webview && npm install && npm run build",
     "watch": "tsc -watch -p ./tsconfig.json",
     "lint": "eslint src --ext ts",
     "test": "node ./out/src/test/runTest.js"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
-    "@types/node": "^24.6.2",
+    "@types/node": "^18.19.3",
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.3.9",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "@types/glob": "^8.1.0"
+
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.19.1",
-    "@types/glob": "^8.1.0",
     "axios": "^1.6.8",
-    "glob": "^11.0.3",
-    "zod": "^3.25.76"
+    "glob": "^8.1.0",
+    "zod": "^3.22.4"
   }
 }
