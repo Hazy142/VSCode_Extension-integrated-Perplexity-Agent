@@ -5,7 +5,6 @@ import ChatInterface from './components/ChatInterface';
 import ToolsPanel from './components/ToolsPanel';
 import SettingsPanel from './components/SettingsPanel';
 import { View, ChatMessage, Role, ExtensionConfig, SearchResult } from '../types';
-// import { fetchChatResponse } from './services/geminiService'; // No longer needed
 import { INITIAL_MESSAGES, INITIAL_CONFIG } from '../constants';
 
 import { vscodeApi as vscode } from './services/vscodeService';
