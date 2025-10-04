@@ -7,7 +7,8 @@
   "main": "./out/src/extension.js",
   "engines": {
     "vscode": "^1.85.0"
-  }, "activationEvents": [
+  },
+  "activationEvents": [
     "onView:perplexity.chat"
   ],
   "contributes": {
@@ -45,18 +46,18 @@
     "test": "node ./out/src/test/runTest.js"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.6",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^18.19.3",
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.3.9",
-    "typescript": "^5.3.3",
-    "@types/glob": "^8.1.0"
-
+    "glob": "^11.0.3",
+    "mocha": "^11.7.4",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.19.1",
     "axios": "^1.6.8",
-    "glob": "^8.1.0",
     "zod": "^3.22.4"
   }
 }

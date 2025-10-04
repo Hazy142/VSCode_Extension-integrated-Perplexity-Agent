@@ -1,47 +1,56 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
+import * as vscode from 'vscode';
+import * as path from 'path';
+import { spawn } from 'child_process';
 /**
- * MCPServer Grundgerüst
- *
- * Diese Datei initialisiert den MCP-Server, registriert die grundlegenden Tools
- * und startet die Kommunikation über Stdio, wie im Projektplan für Woche 1 vorgesehen.
+ * Starts the MCP server in a separate Node.js process to avoid freezing the extension host.
+ * @param context The extension context, used for finding the script path and managing disposal.
  */
-// 1. Erstelle eine MCP-Server-Instanz
-const server = new McpServer({
-    name: "perplexity-vscode-server",
-    version: "1.0.0",
-});
-// 2. Definiere das Schema für das Tool
-const perplexitySearchSchema = z.object({
-    query: z.string().describe("The search query."),
-});
-// 3. Registriere ein Beispiel-Tool (PerplexitySearchTool)
-server.registerTool("perplexitySearch", {
-    title: "Perplexity Search",
-    description: "Searches the web using the Perplexity API.",
-    // Das rohe Schema-Objekt wird direkt übergeben
-    inputSchema: perplexitySearchSchema.shape,
-}, 
-// Die 'execute'-Logik wird als Handler-Funktion übergeben, jetzt typsicher
-async (args) => {
-    console.log(`Executing PerplexitySearchTool with query: "${args.query}"`);
-    // Hier wird später der PerplexityClient aufgerufen
-    const searchResult = "Search results for: " + args.query;
-    // Das Tool-Ergebnis muss im vom SDK erwarteten Format zurückgegeben werden
-    return {
-        content: [{ type: "text", text: searchResult }],
-    };
-});
-console.log('Tool "perplexitySearch" registered.');
-/**
- * Startet den Server und verbindet ihn mit einem Transportmittel.
- * Für eine VSCode-Erweiterung ist Stdio (Standard Input/Output) der übliche Weg.
- */
-export async function startMCPServer() {
-    console.log("Starting MCP Server...");
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.log("MCP Server connected and listening via Stdio.");
+export function startMCPServer(context) {
+    console.log("[Extension] Attempting to start MCP Server child process...");
+    // Path to the compiled server runner script
+    const serverRunnerPath = path.join(context.extensionPath, 'out', 'src', 'mcp-server-runner.js');
+    // Use the same Node.js executable that is running the extension host.
+    const serverProcess = spawn(process.execPath, [serverRunnerPath], {
+        stdio: ['pipe', 'pipe', 'pipe'], // stdin, stdout, stderr
+        shell: false,
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }
+    });
+    // Log stdout from the server process for debugging
+    serverProcess.stdout.on('data', (data) => {
+        console.log(`[MCP Server stdout]: ${data.toString().trim()}`);
+    });
+    // Log stderr and show an error message
+    serverProcess.stderr.on('data', (data) => {
+        const errorMessage = `[MCP Server stderr]: ${data.toString().trim()}`;
+        console.error(errorMessage);
+        vscode.window.showErrorMessage(errorMessage);
+    });
+    // Handle process exit
+    serverProcess.on('close', (code) => {
+        console.log(`[MCP Server] Child process exited with code ${code}`);
+        if (code !== 0) {
+            vscode.window.showWarningMessage(`The Perplexity MCP Server process exited unexpectedly (code: ${code}).`);
+        }
+    });
+    // Handle spawn errors
+    serverProcess.on('error', (err) => {
+        console.error('[Extension] Failed to start MCP Server child process.', err);
+        vscode.window.showErrorMessage('Failed to start the Perplexity MCP Server process.');
+    });
+    console.log(`[Extension] Started MCP Server process with PID: ${serverProcess.pid}`);
+    // Ensure the child process is terminated when the extension is deactivated
+    context.subscriptions.push({
+        dispose: () => {
+            console.log('[Extension] DISPOSE called. Terminating MCP Server process.');
+            if (serverProcess && !serverProcess.killed) {
+                const result = serverProcess.kill('SIGTERM');
+                console.log(`[Extension] KILL signal sent to process ${serverProcess.pid}. Success: ${result}`);
+            }
+            else {
+                console.log('[Extension] MCP Server process already killed or does not exist.');
+            }
+        }
+    });
+    return serverProcess;
 }
 //# sourceMappingURL=MCPServer.js.map

@@ -20,7 +20,7 @@ suite('Extension Test Suite', () => {
 
 	test('Should register perplexity.showChat command', async () => {
 		const commands = await vscode.commands.getCommands(true);
-		assert.ok(commands.includes('perplexity.showChat'), 'Command "perplexity.showChat" is not registered.');
+		assert.ok(commands.includes("perplexity-vscode.showChat"), 'Command "perplexity-vscode.showChat" is not registered.');
 	});
 
 	// test('Should create a webview panel when perplexity.showChat is executed', async () => {

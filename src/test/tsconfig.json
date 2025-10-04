@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../out/test",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    // rootDir NICHT auf "src/test" setzen!
+  },
+  "include": [
+    "../../src/**/*.ts",
+    "../../types/**/*.ts",
+    "./suite/**/*.ts"
+  ]
+}
