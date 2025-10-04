@@ -8,9 +8,7 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "activationEvents": [
-    "onView:perplexity.chat"
-  ],
+  "activationEvents": [],
   "contributes": {
     "commands": [
       {
@@ -30,6 +28,7 @@
     "views": {
       "perplexity-container": [
         {
+          "icon": "assets/perplexity-logo.svg",
           "id": "perplexity.chat",
           "name": "Chat",
           "type": "webview"
@@ -56,7 +55,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.19.1",
+    "@modelcontextprotocol/sdk": "^1.10.1",
     "axios": "^1.6.8",
     "zod": "^3.22.4"
   }

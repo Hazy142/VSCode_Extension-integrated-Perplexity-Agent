@@ -16,19 +16,25 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-export type PerplexityModel = 'sonar-pro' | 'sonar-medium-online' | 'sonar-medium-chat';
+export const PerplexityModels = [
+  "sonar",
+  "sonar-pro",
+  "sonar-reasoning",
+  "sonar-reasoning-pro",
+  "sonar-deep-research"
+] as const;
 export type Theme = 'auto' | 'light' | 'dark';
 
 export interface ExtensionConfig {
   apiKey: string;
-  model: PerplexityModel;
+  model: typeof PerplexityModels[number];
   temperature: number;
   maxTokens: number;
   apiKeyStatus: 'valid' | 'invalid' | 'unconfigured';
   enableMCP: boolean;
   enableWorkspaceAnalysis: boolean;
   theme: Theme;
-  defaultModel: PerplexityModel;
+  defaultModel: typeof PerplexityModels[number];
 }
 
 export interface Tool {

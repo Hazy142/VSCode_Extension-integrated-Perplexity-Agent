@@ -1,16 +1,25 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "Node16",
     "target": "ES2022",
     "lib": ["ES2022"],
     "sourceMap": true,
     "outDir": "out",
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "Node16",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@modelcontextprotocol/sdk/server/mcp": [
+        "./node_modules/@modelcontextprotocol/sdk/dist/cjs/server/mcp.d.ts"
+      ],
+      "@modelcontextprotocol/sdk/server/stdio": [
+        "./node_modules/@modelcontextprotocol/sdk/dist/cjs/server/stdio.d.ts"
+      ]
+    }
   },
   "include": [
     "src/**/*.ts",
