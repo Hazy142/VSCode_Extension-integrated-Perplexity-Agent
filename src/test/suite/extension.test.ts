@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { before, after } from 'mocha';
-import { mcpServerProcess } from '../extension'; // Import the handle
+import { mcpServerProcess } from '../../extension'; // Import the handle
 
 suite('Extension Test Suite', () => {
 	before(() => {
