@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
@@ -6,20 +5,29 @@ import ToolsPanel from './components/ToolsPanel';
 import SettingsPanel from './components/SettingsPanel';
 import { View, ChatMessage, Role, ExtensionConfig, SearchResult } from '../types';
 import { INITIAL_MESSAGES, INITIAL_CONFIG } from '../constants';
-
 import { vscodeApi as vscode } from './services/vscodeService';
 
+// The PerplexityModel type will be inferred from the data sent by the extension
+type PerplexityModel = string;
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>(View.Chat);
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [config, setConfig] = useState<ExtensionConfig>(INITIAL_CONFIG);
+  const [models, setModels] = useState<PerplexityModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<PerplexityModel>('sonar');
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      const message = event.data; // The JSON data from the extension
+      const message = event.data;
       switch (message.command) {
+        case 'updateModels':
+          setModels(message.data as PerplexityModel[]);
+          if (message.data && message.data.length > 0) {
+            setSelectedModel(message.data[0]);
+          }
+          break;
         case 'searchResult': {
           setIsLoading(false);
           const assistantMessage: ChatMessage = {
@@ -71,6 +79,15 @@ const App: React.FC = () => {
     });
   }, [isLoading]);
 
+  const handleModelChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const model = event.target.value as PerplexityModel;
+    setSelectedModel(model);
+    vscode.postMessage({
+      command: 'selectModel',
+      content: model,
+    });
+  };
+
   const renderActiveView = () => {
     switch (activeView) {
       case View.Chat:
@@ -88,6 +105,19 @@ const App: React.FC = () => {
     <div className="flex h-screen w-full bg-[#1e1e1e] text-gray-300 font-sans">
       <Sidebar activeView={activeView} setActiveView={setActiveView} />
       <main className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="p-2 bg-[#252526] border-b border-gray-600">
+          <select
+            id="model-select"
+            value={selectedModel}
+            onChange={handleModelChange}
+            className="w-full p-2 bg-[#3c3c3c] text-white rounded"
+            disabled={models.length === 0}
+          >
+            {models.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </div>
         {renderActiveView()}
       </main>
     </div>
