@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { PerplexityClient } from './services/PerplexityClient';
 import { PerplexityModel, PerplexityModels } from './util/models';
 import { ContextManager } from './services/ContextManager';
-import { ContextMessage } from '../types/messages';
+import { ContextMessage } from './types/messages';
 
 export class ChatViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'perplexity.chat';
@@ -46,15 +46,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
             switch (message.command) {
                 case 'search':
                     try {
-                        const workspaceContext = this._contextManager.getWorkspaceContext();
-                        const activeFileContext = this._contextManager.getActiveFileContext();
-                        
+                        const workspaceContext = await this._contextManager.getWorkspaceContext();
+                        const activeFileContext = await this._contextManager.getActiveFileContext();
+
                         let prompt = message.text;
                         if (workspaceContext) {
-                            prompt = `[WORKSPACE: ${workspaceContext.technologies.join(', ')}] ${prompt}`;
+                            const tech = [...workspaceContext.languages, ...workspaceContext.frameworks].join(', ');
+                            prompt = `[WORKSPACE: ${workspaceContext.projectType} - ${tech}] ${prompt}`;
                         }
                         if (activeFileContext) {
-                            prompt = `[CURRENT_FILE: ${activeFileContext.fileName}] ${prompt}`;
+                            const fileName = path.basename(activeFileContext.filePath);
+                            prompt = `[CURRENT_FILE: ${fileName} (${activeFileContext.languageId})] ${prompt}`;
                         }
 
                         const results = await this._perplexityClient.search(prompt, this._model);
@@ -70,11 +72,11 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     }
                     break;
                 case 'getWorkspaceContext':
-                    const workspaceContextData = this._contextManager.getWorkspaceContext();
+                    const workspaceContextData = await this._contextManager.getWorkspaceContext();
                     webviewView.webview.postMessage({ command: 'workspaceContext', data: workspaceContextData });
                     break;
                 case 'getActiveFileContext':
-                    const activeFileContextData = this._contextManager.getActiveFileContext();
+                    const activeFileContextData = await this._contextManager.getActiveFileContext();
                     webviewView.webview.postMessage({ command: 'activeFileContext', data: activeFileContextData });
                     break;
             }
