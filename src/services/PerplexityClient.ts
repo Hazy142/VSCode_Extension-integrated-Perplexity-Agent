@@ -10,7 +10,7 @@ export class PerplexityClient {
 
     private async getApiKey(): Promise<string> {
         // Retrieve the API key securely from the extension's secrets
-        return (await this.context.secrets.get('perplexity-ext.apiKey')) || '';
+        return (await this.context.secrets.get('perplexity.apiKey')) || '';
     }
 
     public async search(query: string, model: PerplexityModel): Promise<SearchResult> {
@@ -55,6 +55,27 @@ export class PerplexityClient {
         } catch (error: any) {
             console.error('Error calling Perplexity API:', error.response ? error.response.data : error.message);
             throw new Error(`Failed to get search results from Perplexity: ${error.message}`);
+        }
+    }
+
+    public async testConnection(model: PerplexityModel): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
+        const startTime = Date.now();
+        try {
+            // Re-using the search method for the test
+            const response = await this.search("ping", model);
+            const latencyMs = Date.now() - startTime;
+
+            if (response && response.answer) {
+                return { ok: true, latencyMs };
+            } else {
+                return { ok: false, error: 'API returned an empty or invalid response.', latencyMs };
+            }
+        } catch (error: any) {
+            const latencyMs = Date.now() - startTime;
+            if (error.message.includes('401') || error.message.includes('not configured')) {
+                 return { ok: false, error: 'Authentication failed. Please check your API key.', latencyMs };
+            }
+            return { ok: false, error: error.message || 'An unknown error occurred.', latencyMs };
         }
     }
 }

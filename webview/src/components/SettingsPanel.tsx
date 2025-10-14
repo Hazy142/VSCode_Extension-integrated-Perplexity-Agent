@@ -1,75 +1,175 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { vscode } from '../services/vscodeService';
+import { PerplexityModel } from '../../../src/util/models';
+import { ExtensionSettings } from '../../../src/types/messages';
 
-import React from 'react';
-import { ExtensionConfig } from '../../types.ts';
-
-interface SettingsPanelProps {
-  config: ExtensionConfig;
-  onConfigChange: (newConfig: ExtensionConfig) => void;
-}
-
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ config, onConfigChange }) => {
-  const handleSelectChange = <K extends keyof ExtensionConfig>(key: K, value: ExtensionConfig[K]) => {
-    onConfigChange({ ...config, [key]: value });
-  };
-  
-  const handleToggleChange = (key: keyof ExtensionConfig) => {
-      onConfigChange({ ...config, [key]: !config[key] });
-  }
-
-  return (
-    <div className="h-full flex flex-col p-6 overflow-y-auto">
-      <h1 className="text-xl font-bold text-white mb-8">Settings</h1>
-      <div className="space-y-8">
-        {/* API Settings */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-200 border-b border-gray-700 pb-2">API Configuration</h2>
-          <div className="flex items-center justify-between">
-            <label htmlFor="apiKey" className="text-sm text-gray-400">API Key</label>
-            <div className="flex items-center space-x-2">
-                <input id="apiKey" type="password" value="••••••••••••••••••••" readOnly className="w-64 bg-[#2d2d2d] border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <span className={`px-2 py-0.5 text-xs rounded-full ${
-                    config.apiKeyStatus === 'valid' ? 'bg-green-500/20 text-green-400' :
-                    config.apiKeyStatus === 'invalid' ? 'bg-red-500/20 text-red-400' :
-                    'bg-yellow-500/20 text-yellow-400'
-                }`}>
-                    {config.apiKeyStatus}
-                </span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <label htmlFor="defaultModel" className="text-sm text-gray-400">Default Model</label>
-            <select
-              id="defaultModel"
-              value={config.defaultModel}
-              onChange={(e) => handleSelectChange('defaultModel', e.target.value as ExtensionConfig['defaultModel'])}
-              className="bg-[#2d2d2d] border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="sonar-pro">Sonar Pro</option>
-              <option value="sonar-medium-online">Sonar Medium Online</option>
-              <option value="sonar-medium-chat">Sonar Medium Chat</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Feature Toggles */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-200 border-b border-gray-700 pb-2">Feature Toggles</h2>
-          <div className="flex items-center justify-between">
-            <label htmlFor="enableMCP" className="text-sm text-gray-400">Enable MCP Server</label>
-            <button onClick={() => handleToggleChange('enableMCP')} className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${config.enableMCP ? 'bg-blue-600' : 'bg-gray-600'}`}>
-                <span className={`block w-4 h-4 bg-white rounded-full transform transition-transform duration-300 ${config.enableMCP ? 'translate-x-6' : 'translate-x-0'}`}></span>
-            </button>
-          </div>
-           <div className="flex items-center justify-between">
-            <label htmlFor="enableWorkspaceAnalysis" className="text-sm text-gray-400">Enable Workspace Analysis</label>
-            <button onClick={() => handleToggleChange('enableWorkspaceAnalysis')} className={`w-12 h-6 rounded-full p-1 transition-colors duration-300 ${config.enableWorkspaceAnalysis ? 'bg-blue-600' : 'bg-gray-600'}`}>
-                <span className={`block w-4 h-4 bg-white rounded-full transform transition-transform duration-300 ${config.enableWorkspaceAnalysis ? 'translate-x-6' : 'translate-x-0'}`}></span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+const DEFAULT_SETTINGS_WEBVIEW: ExtensionSettings = {
+    defaultModel: 'sonar-medium-chat',
+    enrichWorkspaceContext: true,
+    enrichActiveFileContext: true,
 };
 
-export default SettingsPanel;
+interface TestResult {
+    ok: boolean;
+    latencyMs?: number;
+    error?: string;
+    timestamp?: string;
+}
+
+export const SettingsPanel: React.FC<{ models: PerplexityModel[], onBack: () => void }> = ({ models, onBack }) => {
+    const [apiKey, setApiKey] = useState('');
+    const [apiKeyStatus, setApiKeyStatus] = useState<'missing' | 'saved' | 'invalid'>('missing');
+    const [settings, setSettings] = useState<ExtensionSettings>(DEFAULT_SETTINGS_WEBVIEW);
+    const [testResult, setTestResult] = useState<TestResult | null>(null);
+    const [isTesting, setIsTesting] = useState(false);
+
+    const handleMessages = useCallback((event: MessageEvent) => {
+        const message = event.data;
+        switch (message.command) {
+            case 'settings:update':
+                setSettings(message.data.settings);
+                setApiKeyStatus(message.data.apiKeyStatus);
+                break;
+            case 'settings:key:update':
+                if (message.data.ok) {
+                    setApiKeyStatus(message.data.status);
+                    setApiKey(''); // Clear input field on success
+                }
+                break;
+            case 'settings:key:testResult':
+                setTestResult({ ...message.data, timestamp: new Date().toLocaleTimeString() });
+                setIsTesting(false);
+                if(message.data.ok) {
+                    setApiKeyStatus('saved');
+                } else {
+                    setApiKeyStatus('invalid');
+                }
+                break;
+        }
+    }, []);
+
+    useEffect(() => {
+        window.addEventListener('message', handleMessages);
+        vscode.postMessage({ command: 'settings:get' });
+        return () => window.removeEventListener('message', handleMessages);
+    }, [handleMessages]);
+
+    const handleSaveKey = () => {
+        if (apiKey) {
+            vscode.postMessage({ command: 'settings:key:set', data: { key: apiKey } });
+        }
+    };
+
+    const handleDeleteKey = () => {
+        vscode.postMessage({ command: 'settings:key:delete' });
+    };
+
+    const handleTestConnection = () => {
+        setIsTesting(true);
+        setTestResult(null);
+        vscode.postMessage({ command: 'settings:key:test' });
+    };
+
+    const handleSaveSettings = () => {
+        vscode.postMessage({ command: 'settings:save', data: settings });
+    };
+    
+    const handleResetDefaults = () => {
+        setSettings(DEFAULT_SETTINGS_WEBVIEW);
+        vscode.postMessage({ command: 'settings:save', data: DEFAULT_SETTINGS_WEBVIEW });
+    };
+
+    const renderApiKeyStatus = () => {
+        switch (apiKeyStatus) {
+            case 'saved':
+                return <span className="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">Key Saved</span>;
+            case 'missing':
+                return <span className="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-100 rounded-full">Key Missing</span>;
+            case 'invalid':
+                return <span className="px-2 py-1 text-xs font-medium text-red-800 bg-red-100 rounded-full">Key Invalid</span>;
+        }
+    };
+
+    return (
+        <div className="p-4 text-sm text-white">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold">Settings</h2>
+                <button onClick={onBack} className="px-3 py-1 text-white bg-gray-600 rounded hover:bg-gray-500">Back to Chat</button>
+            </div>
+
+            {/* API Key Section */}
+            <div className="p-3 mb-4 bg-gray-800 rounded-lg">
+                <h3 className="mb-2 font-semibold">API Key</h3>
+                <div className="flex items-center space-x-2">
+                    <input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder="Enter your Perplexity API Key"
+                        className="flex-grow p-2 text-white bg-gray-700 border border-gray-600 rounded"
+                    />
+                    <button onClick={handleSaveKey} className="px-4 py-2 font-semibold text-white bg-blue-600 rounded hover:bg-blue-500 disabled:opacity-50" disabled={!apiKey}>Save</button>
+                    <button onClick={handleDeleteKey} className="px-4 py-2 font-semibold text-white bg-red-600 rounded hover:bg-red-500">Delete</button>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center space-x-2">
+                        <button onClick={handleTestConnection} className="px-4 py-2 font-semibold text-white bg-purple-600 rounded hover:bg-purple-500 disabled:opacity-50" disabled={isTesting}>
+                            {isTesting ? 'Testing...' : 'Test Connection'}
+                        </button>
+                        {renderApiKeyStatus()}
+                    </div>
+                    {testResult && (
+                        <div className={`text-xs p-2 rounded ${testResult.ok ? 'bg-green-900' : 'bg-red-900'}`}>
+                            {testResult.ok ? `Success! Latency: ${testResult.latencyMs}ms` : `Error: ${testResult.error}`}
+                            <span className="ml-2 text-gray-400">({testResult.timestamp})</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Model and Prompt Settings */}
+            <div className="p-3 bg-gray-800 rounded-lg">
+                <h3 className="mb-2 font-semibold">Model and Prompt</h3>
+                <div className="space-y-3">
+                    <div>
+                        <label htmlFor="default-model" className="block mb-1 font-medium">Default Model</label>
+                        <select
+                            id="default-model"
+                            value={settings.defaultModel}
+                            onChange={(e) => setSettings({ ...settings, defaultModel: e.target.value as PerplexityModel })}
+                            className="w-full p-2 text-white bg-gray-700 border border-gray-600 rounded"
+                        >
+                            {models.map(model => <option key={model} value={model}>{model}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex items-center">
+                        <input
+                            type="checkbox"
+                            id="enrich-workspace"
+                            checked={settings.enrichWorkspaceContext}
+                            onChange={(e) => setSettings({ ...settings, enrichWorkspaceContext: e.target.checked })}
+                            className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="enrich-workspace" className="ml-2">Enrich prompt with workspace context</label>
+                    </div>
+                    <div className="flex items-center">
+                        <input
+                            type="checkbox"
+                            id="enrich-file"
+                            checked={settings.enrichActiveFileContext}
+                            onChange={(e) => setSettings({ ...settings, enrichActiveFileContext: e.target.checked })}
+                            className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="enrich-file" className="ml-2">Enrich prompt with active file context</label>
+                    </div>
+                </div>
+            </div>
+
+            {/* Save/Reset Buttons */}
+            <div className="flex justify-end mt-4 space-x-2">
+                <button onClick={handleResetDefaults} className="px-4 py-2 font-semibold text-white bg-gray-600 rounded hover:bg-gray-500">Reset to Defaults</button>
+                <button onClick={handleSaveSettings} className="px-4 py-2 font-semibold text-white bg-green-600 rounded hover:bg-green-500">Save Settings</button>
+            </div>
+        </div>
+    );
+};

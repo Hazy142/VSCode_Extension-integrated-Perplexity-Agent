@@ -4,19 +4,27 @@ import * as fs from 'fs';
 import { PerplexityClient } from './services/PerplexityClient';
 import { PerplexityModel, PerplexityModels } from './util/models';
 import { ContextManager } from './services/ContextManager';
-import { ContextMessage } from './types/messages';
+import { ContextMessage, ExtensionSettings, SettingsMessage } from './types/messages';
+
+const DEFAULT_SETTINGS: ExtensionSettings = {
+    defaultModel: 'sonar-medium-chat',
+    enrichWorkspaceContext: true,
+    enrichActiveFileContext: true,
+};
 
 export class ChatViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'perplexity.chat';
 
     private _view?: vscode.WebviewView;
     private _perplexityClient: PerplexityClient;
-    private _model: PerplexityModel = 'sonar'; // Default model
     private _contextManager: ContextManager;
+    private _settings: ExtensionSettings;
 
     constructor(private readonly _context: vscode.ExtensionContext) {
         this._perplexityClient = new PerplexityClient(this._context);
         this._contextManager = ContextManager.getInstance();
+        // Load settings from global state, using defaults if not present
+        this._settings = this._context.globalState.get('perplexity.settings', DEFAULT_SETTINGS);
     }
 
     public resolveWebviewView(
@@ -36,51 +44,128 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-        // Send the list of models to the webview when it's ready
-        webviewView.webview.postMessage({
-            command: 'updateModels',
-            data: PerplexityModels
-        });
-
-        webviewView.webview.onDidReceiveMessage(async (message: { command: ContextMessage | 'search' | 'selectModel', text: string, content: PerplexityModel }) => {
+        // Listen for messages from the webview
+        webviewView.webview.onDidReceiveMessage(async (message: { command: ContextMessage | SettingsMessage | 'search', data: any }) => {
             switch (message.command) {
                 case 'search':
-                    try {
-                        const workspaceContext = await this._contextManager.getWorkspaceContext();
-                        const activeFileContext = await this._contextManager.getActiveFileContext();
-
-                        let prompt = message.text;
-                        if (workspaceContext) {
-                            const tech = [...workspaceContext.languages, ...workspaceContext.frameworks].join(', ');
-                            prompt = `[WORKSPACE: ${workspaceContext.projectType} - ${tech}] ${prompt}`;
-                        }
-                        if (activeFileContext) {
-                            const fileName = path.basename(activeFileContext.filePath);
-                            prompt = `[CURRENT_FILE: ${fileName} (${activeFileContext.languageId})] ${prompt}`;
-                        }
-
-                        const results = await this._perplexityClient.search(prompt, this._model);
-                        webviewView.webview.postMessage({ command: 'searchResult', data: results });
-                    } catch (error: any) {
-                        webviewView.webview.postMessage({ command: 'error', message: error.message });
-                    }
+                    this.handleSearch(message.data.text);
                     break;
-                case 'selectModel':
-                    const selectedModel = message.content as PerplexityModel;
-                    if (PerplexityModels.includes(selectedModel)) {
-                        this._model = selectedModel;
-                    }
+                
+                // Settings Handlers
+                case 'settings:get':
+                    this.handleGetSettings();
                     break;
+                case 'settings:save':
+                    this.handleSaveSettings(message.data);
+                    break;
+                case 'settings:key:set':
+                    this.handleSetKey(message.data.key);
+                    break;
+                case 'settings:key:delete':
+                    this.handleDeleteKey();
+                    break;
+                case 'settings:key:test':
+                    this.handleTestKey();
+                    break;
+
+                // Context Handlers
                 case 'getWorkspaceContext':
                     const workspaceContextData = await this._contextManager.getWorkspaceContext();
-                    webviewView.webview.postMessage({ command: 'workspaceContext', data: workspaceContextData });
+                    this._view?.webview.postMessage({ command: 'workspaceContext', data: workspaceContextData });
                     break;
                 case 'getActiveFileContext':
                     const activeFileContextData = await this._contextManager.getActiveFileContext();
-                    webviewView.webview.postMessage({ command: 'activeFileContext', data: activeFileContextData });
+                    this._view?.webview.postMessage({ command: 'activeFileContext', data: activeFileContextData });
                     break;
             }
         });
+        
+        // Push initial data to the webview
+        this.pushInitialData();
+    }
+
+    private pushInitialData() {
+        this._view?.webview.postMessage({
+            command: 'updateModels',
+            data: PerplexityModels
+        });
+        this.handleGetSettings();
+    }
+
+    private async handleSearch(text: string) {
+        if (!this._view) return;
+        try {
+            let prompt = text;
+            if (this._settings.enrichWorkspaceContext) {
+                const workspaceContext = await this._contextManager.getWorkspaceContext();
+                if (workspaceContext) {
+                    const tech = [...workspaceContext.languages, ...workspaceContext.frameworks].join(', ');
+                    prompt = `[WORKSPACE: ${workspaceContext.projectType} - ${tech}] ${prompt}`;
+                }
+            }
+            if (this._settings.enrichActiveFileContext) {
+                const activeFileContext = await this._contextManager.getActiveFileContext();
+                if (activeFileContext) {
+                    const fileName = path.basename(activeFileContext.filePath);
+                    prompt = `[CURRENT_FILE: ${fileName} (${activeFileContext.languageId})] ${prompt}`;
+                }
+            }
+
+            const results = await this._perplexityClient.search(prompt, this._settings.defaultModel);
+            this._view.webview.postMessage({ command: 'searchResult', data: results });
+        } catch (error: any) {
+            this._view.webview.postMessage({ command: 'error', message: error.message });
+        }
+    }
+
+    private async handleGetSettings() {
+        if (!this._view) return;
+        const apiKey = await this._context.secrets.get('perplexity.apiKey');
+        const apiKeyStatus = apiKey ? 'saved' : 'missing';
+        this._view.webview.postMessage({
+            command: 'settings:update',
+            data: {
+                settings: this._settings,
+                apiKeyStatus,
+            }
+        });
+    }
+
+    private async handleSaveSettings(settings: ExtensionSettings) {
+        this._settings = settings;
+        await this._context.globalState.update('perplexity.settings', settings);
+        this._view?.webview.postMessage({ command: 'settings:saved', data: { ok: true } });
+        vscode.window.showInformationMessage('Perplexity settings saved.');
+    }
+
+    private async handleSetKey(key: string) {
+        if (!this._view) return;
+        try {
+            await this._context.secrets.store('perplexity.apiKey', key);
+            this._view.webview.postMessage({ command: 'settings:key:update', data: { ok: true, status: 'saved' } });
+            vscode.window.showInformationMessage('Perplexity API Key saved successfully.');
+        } catch (error: any) {
+            this._view.webview.postMessage({ command: 'settings:key:update', data: { ok: false, error: error.message } });
+            vscode.window.showErrorMessage(`Failed to save API Key: ${error.message}`);
+        }
+    }
+
+    private async handleDeleteKey() {
+        if (!this._view) return;
+        try {
+            await this._context.secrets.delete('perplexity.apiKey');
+            this._view.webview.postMessage({ command: 'settings:key:update', data: { ok: true, status: 'missing' } });
+            vscode.window.showInformationMessage('Perplexity API Key deleted.');
+        } catch (error: any) {
+            this._view.webview.postMessage({ command: 'settings:key:update', data: { ok: false, error: error.message } });
+            vscode.window.showErrorMessage(`Failed to delete API Key: ${error.message}`);
+        }
+    }
+
+    private async handleTestKey() {
+        if (!this._view) return;
+        const result = await this._perplexityClient.testConnection(this._settings.defaultModel);
+        this._view.webview.postMessage({ command: 'settings:key:testResult', data: result });
     }
 
     private _getHtmlForWebview(webview: vscode.Webview): string {
