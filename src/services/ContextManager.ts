@@ -269,4 +269,21 @@ export class ContextManager {
         if (dependencies.some(d => d.name === 'angular')) return 'Angular';
         return 'Unknown';
     }
+
+    // Liefert den aktuellen Workspace-Kontext aus dem Cache oder analysiert neu
+public async getWorkspaceContext(): Promise<WorkspaceContext | null> {
+    const cached = this.cache.get('workspaceContext') as WorkspaceContext | undefined;
+    if (cached) return cached;
+    return await this.analyzeWorkspace();
+}
+
+// Wrapper für geplante/ereignisbasierte Aktualisierung
+public async buildContext(): Promise<void> {
+    try {
+        await this.analyzeWorkspace();
+    } catch (e) {
+        console.warn('[ContextManager] buildContext failed:', e instanceof Error ? e.message : String(e));
+    }
+}
+
 }
