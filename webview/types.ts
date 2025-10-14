@@ -55,3 +55,44 @@ export interface SearchResult {
   sources: Source[];
   followUpQuestions: string[];
 }
+
+export interface SymbolInfo {
+  name: string;
+  kind: number; // vscode.SymbolKind is a number
+  // location is complex, so we might simplify or omit it for the webview
+}
+
+export interface FileContext {
+  filePath: string;
+  fileName: string; // Add fileName for easier display
+  content?: string; // Content might be large, so make it optional
+  symbols?: SymbolInfo[];
+  languageId: string;
+}
+
+export interface GitContext {
+  branch: string;
+  status: string;
+  remoteUrl?: string;
+  lastCommit?: {
+    hash: string;
+    message: string;
+    author: string;
+    date: string;
+  };
+}
+
+export interface DependencyInfo {
+  name: string;
+  version: string;
+  source: string;
+}
+
+export interface WorkspaceContext {
+  projectType: string;
+  technologies: string[]; // Renamed from languages/frameworks for simplicity
+  activeFiles?: FileContext[];
+  gitInfo?: GitContext;
+  dependencies?: DependencyInfo[];
+  // codeSymbols might be too large for the webview, omitting for now
+}

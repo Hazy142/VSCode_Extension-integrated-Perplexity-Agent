@@ -2,11 +2,30 @@ import * as vscode from 'vscode';
 import { startMCPServer } from './services/MCPServer';
 import { ChildProcess } from 'child_process';
 import { ChatViewProvider } from './ChatViewProvider';
+import { ContextManager } from './services/ContextManager';
 
 export let mcpServerProcess: ChildProcess | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('[Perplexity] Extension is activating...');
+
+    // Initialize ContextManager
+    const contextManager = ContextManager.getInstance();
+    contextManager.buildContext();
+
+    // Background context updates (every 5 minutes)
+    setInterval(() => {
+        contextManager.buildContext();
+    }, 5 * 60 * 1000);
+
+    // Workspace change listener
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+        contextManager.buildContext();
+    });
+    vscode.workspace.onDidSaveTextDocument(() => {
+        contextManager.buildContext();
+    });
+
 
     mcpServerProcess = startMCPServer(context);
 

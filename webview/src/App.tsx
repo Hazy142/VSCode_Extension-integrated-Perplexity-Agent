@@ -3,7 +3,7 @@ import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import ToolsPanel from './components/ToolsPanel';
 import SettingsPanel from './components/SettingsPanel';
-import { View, ChatMessage, Role, ExtensionConfig, SearchResult } from '../types';
+import { View, ChatMessage, Role, ExtensionConfig, SearchResult, WorkspaceContext, FileContext } from '../types';
 import { INITIAL_MESSAGES, INITIAL_CONFIG } from '../constants';
 import { vscodeApi as vscode } from './services/vscodeService';
 
@@ -17,6 +17,8 @@ const App: React.FC = () => {
   const [config, setConfig] = useState<ExtensionConfig>(INITIAL_CONFIG);
   const [models, setModels] = useState<PerplexityModel[]>([]);
   const [selectedModel, setSelectedModel] = useState<PerplexityModel>('sonar');
+  const [workspaceContext, setWorkspaceContext] = useState<WorkspaceContext | null>(null);
+  const [activeFileContext, setActiveFileContext] = useState<FileContext | null>(null);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -50,6 +52,12 @@ const App: React.FC = () => {
           setMessages(prev => [...prev, errorMessage]);
           break;
         }
+        case 'workspaceContext':
+          setWorkspaceContext(message.data as WorkspaceContext);
+          break;
+        case 'activeFileContext':
+          setActiveFileContext(message.data as FileContext);
+          break;
       }
     };
 
@@ -88,6 +96,14 @@ const App: React.FC = () => {
     });
   };
 
+  const getWorkspaceContext = () => {
+    vscode.postMessage({ command: 'getWorkspaceContext' });
+  };
+
+  const getActiveFileContext = () => {
+    vscode.postMessage({ command: 'getActiveFileContext' });
+  };
+
   const renderActiveView = () => {
     switch (activeView) {
       case View.Chat:
@@ -118,7 +134,15 @@ const App: React.FC = () => {
             ))}
           </select>
         </div>
+        <div className="p-2 bg-[#252526] border-b border-gray-600">
+          <button onClick={getWorkspaceContext} className="w-full p-2 bg-[#3c3c3c] text-white rounded mb-2">Get Workspace Context</button>
+          <button onClick={getActiveFileContext} className="w-full p-2 bg-[#3c3c3c] text-white rounded">Get Active File Context</button>
+        </div>
         {renderActiveView()}
+        <div className="p-2 bg-[#252526] border-t border-gray-600">
+          {workspaceContext && <pre>{JSON.stringify(workspaceContext, null, 2)}</pre>}
+          {activeFileContext && <pre>{JSON.stringify(activeFileContext, null, 2)}</pre>}
+        </div>
       </main>
     </div>
   );
