@@ -1,32 +1,32 @@
 import axios from 'axios';
 import { SearchResult } from '../../types/shared';
 import * as vscode from 'vscode';
+import { PerplexityModel } from '../util/models';
 
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
 export class PerplexityClient {
-    private apiKey: string;
+    constructor(private context: vscode.ExtensionContext) {}
 
-    constructor() {
-        // In a real extension, the API key should be fetched securely from vscode.workspace.getConfiguration
-        // For this task, we use an environment variable.
-        this.apiKey = process.env.PERPLEXITY_API_KEY || '';
-        if (!this.apiKey) {
-            vscode.window.showErrorMessage('Perplexity API key not found. Please set the PERPLEXITY_API_KEY environment variable.');
-            console.error('Perplexity API key not found. Please set the PERPLEXITY_API_KEY environment variable.');
-        }
+    private async getApiKey(): Promise<string> {
+        // Retrieve the API key securely from the extension's secrets
+        return (await this.context.secrets.get('perplexity-ext.apiKey')) || '';
     }
 
-    public async search(query: string): Promise<SearchResult> {
-        if (!this.apiKey) {
-            throw new Error('Perplexity API key is not configured.');
+    public async search(query: string, model: PerplexityModel): Promise<SearchResult> {
+        const apiKey = await this.getApiKey();
+        if (!apiKey) {
+            // Use a more specific error message and show it to the user
+            const errorMsg = 'Perplexity API key is not configured. Please set it in the extension settings.';
+            vscode.window.showErrorMessage(errorMsg);
+            throw new Error(errorMsg);
         }
 
         try {
             const response = await axios.post(
                 PERPLEXITY_API_URL,
                 {
-                    model: 'sonar-medium-online',
+                    model: model,
                     messages: [
                         { role: 'system', content: 'Be precise and concise.' },
                         { role: 'user', content: query },
@@ -34,16 +34,16 @@ export class PerplexityClient {
                 },
                 {
                     headers: {
-                        'Authorization': `Bearer ${this.apiKey}`,
+                        'Authorization': `Bearer ${apiKey}`,
                         'Content-Type': 'application/json',
                     },
                 }
             );
 
             const data = response.data;
-            if (data.choices && data.choices.length > 0) {
+            if (data.choices && data.choices.length > 0 && data.choices[0].message) {
                 const answer = data.choices[0].message.content;
-                // As discussed, sources and followUpQuestions are not provided by this endpoint.
+                // The /chat/completions endpoint does not return sources or follow-up questions.
                 return {
                     answer,
                     sources: [],
