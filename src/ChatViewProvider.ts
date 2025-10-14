@@ -7,7 +7,7 @@ import { ContextManager } from './services/ContextManager';
 import { ContextMessage, ExtensionSettings, SettingsMessage } from './types/messages';
 
 const DEFAULT_SETTINGS: ExtensionSettings = {
-    defaultModel: 'sonar-medium-chat',
+    defaultModel: 'sonar',
     enrichWorkspaceContext: true,
     enrichActiveFileContext: true,
 };
@@ -45,10 +45,13 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
         // Listen for messages from the webview
-        webviewView.webview.onDidReceiveMessage(async (message: { command: ContextMessage | SettingsMessage | 'search', data: any }) => {
+        webviewView.webview.onDidReceiveMessage(async (message: { command: ContextMessage | SettingsMessage | 'search', text?: string, data?: any }) => {
             switch (message.command) {
                 case 'search':
-                    this.handleSearch(message.data.text);
+                    const searchText = message.data?.text || message.text;
+                    if (searchText) {
+                        this.handleSearch(searchText);
+                    }
                     break;
                 
                 // Settings Handlers
@@ -132,10 +135,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async handleSaveSettings(settings: ExtensionSettings) {
+       if (!PerplexityModels.includes(settings.defaultModel)) {
+            settings.defaultModel = 'sonar'
+        }
         this._settings = settings;
         await this._context.globalState.update('perplexity.settings', settings);
         this._view?.webview.postMessage({ command: 'settings:saved', data: { ok: true } });
         vscode.window.showInformationMessage('Perplexity settings saved.');
+        
     }
 
     private async handleSetKey(key: string) {

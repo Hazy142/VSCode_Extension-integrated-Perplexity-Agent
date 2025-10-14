@@ -4,7 +4,7 @@ import { PerplexityModel } from '../../../src/util/models';
 import { ExtensionSettings } from '../../../src/types/messages';
 
 const DEFAULT_SETTINGS_WEBVIEW: ExtensionSettings = {
-    defaultModel: 'sonar-medium-chat',
+    defaultModel: 'sonar',
     enrichWorkspaceContext: true,
     enrichActiveFileContext: true,
 };
