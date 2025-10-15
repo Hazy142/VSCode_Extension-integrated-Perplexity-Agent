@@ -45,13 +45,16 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
         // Listen for messages from the webview
-        webviewView.webview.onDidReceiveMessage(async (message: { command: ContextMessage | SettingsMessage | 'search', text?: string, data?: any }) => {
+        webviewView.webview.onDidReceiveMessage(async (message: { command: ContextMessage | SettingsMessage | 'search' | 'search:cancel', text?: string, data?: any }) => {
             switch (message.command) {
                 case 'search':
                     const searchText = message.data?.text || message.text;
                     if (searchText) {
                         this.handleSearch(searchText);
                     }
+                    break;
+                case 'search:cancel':
+                    this._perplexityClient.cancel();
                     break;
                 
                 // Settings Handlers
@@ -114,8 +117,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                 }
             }
 
-            const results = await this._perplexityClient.search(prompt, this._settings.defaultModel);
-            this._view.webview.postMessage({ command: 'searchResult', data: results });
+            this._perplexityClient.searchStream(prompt, this._settings.defaultModel, {
+                onData: (chunk) => {
+                    this._view?.webview.postMessage({ command: 'stream:chunk', data: chunk });
+                },
+                onEnd: () => {
+                    this._view?.webview.postMessage({ command: 'stream:end' });
+                },
+                onError: (error) => {
+                    this._view?.webview.postMessage({ command: 'error', message: error.message });
+                }
+            });
         } catch (error: any) {
             this._view.webview.postMessage({ command: 'error', message: error.message });
         }
