@@ -55,6 +55,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                     break;
                 case 'search:cancel':
                     this._perplexityClient.cancel();
+                    this._view?.webview.postMessage({ command: 'stream:end' });
                     break;
                 
                 // Settings Handlers
@@ -100,7 +101,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
     private async handleSearch(text: string) {
         if (!this._view) return;
+        
         try {
+            console.log('[ChatViewProvider] Starting search for:', text);
+            
             let prompt = text;
             if (this._settings.enrichWorkspaceContext) {
                 const workspaceContext = await this._contextManager.getWorkspaceContext();
@@ -117,19 +121,25 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
                 }
             }
 
+            console.log('[ChatViewProvider] Starting stream with enriched prompt');
+            
             this._perplexityClient.searchStream(prompt, this._settings.defaultModel, {
                 onData: (chunk) => {
+                    console.log('[ChatViewProvider] Received chunk:', chunk.length, 'chars');
                     this._view?.webview.postMessage({ command: 'stream:chunk', data: chunk });
                 },
                 onEnd: () => {
+                    console.log('[ChatViewProvider] Stream completed');
                     this._view?.webview.postMessage({ command: 'stream:end' });
                 },
                 onError: (error) => {
-                    this._view?.webview.postMessage({ command: 'error', message: error.message });
+                    console.error('[ChatViewProvider] Stream error:', error);
+                    this._view?.webview.postMessage({ command: 'stream:error', message: error.message });
                 }
             });
         } catch (error: any) {
-            this._view.webview.postMessage({ command: 'error', message: error.message });
+            console.error('[ChatViewProvider] Search failed:', error);
+            this._view?.webview.postMessage({ command: 'stream:error', message: error.message });
         }
     }
 
@@ -154,7 +164,6 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         await this._context.globalState.update('perplexity.settings', settings);
         this._view?.webview.postMessage({ command: 'settings:saved', data: { ok: true } });
         vscode.window.showInformationMessage('Perplexity settings saved.');
-        
     }
 
     private async handleSetKey(key: string) {
