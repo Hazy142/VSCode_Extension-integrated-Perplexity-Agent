@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { vscode } from '../services/vscodeService';
-import { PerplexityModel } from '../../../src/util/models';
+
+type PerplexityModel = 'sonar' | 'sonar-pro' | 'sonar-reasoning' | 'sonar-reasoning-pro' | 'sonar-deep-research';
 import { ExtensionSettings } from '../../../src/types/messages';
 
 const DEFAULT_SETTINGS_WEBVIEW: ExtensionSettings = {
@@ -90,8 +91,11 @@ export const SettingsPanel: React.FC<{ models: PerplexityModel[], onBack: () => 
         }
     };
 
+    console.log('RENDERING SETTINGS PANEL. State:', { apiKeyStatus, settings }); // Debug log
+
     return (
         <div className="p-4 text-sm text-white">
+            <h1 className="p-2 mb-2 font-bold text-yellow-400 bg-red-800">DEBUG: SETTINGS PANEL IS RENDERING</h1>
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold">Settings</h2>
                 <button onClick={onBack} className="px-3 py-1 text-white bg-gray-600 rounded hover:bg-gray-500">Back to Chat</button>

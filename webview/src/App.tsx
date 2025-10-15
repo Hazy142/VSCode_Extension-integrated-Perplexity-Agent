@@ -2,11 +2,11 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import { SettingsPanel } from './components/SettingsPanel';
-import { View, ChatMessage, Role, SearchResult, WorkspaceContext, FileContext } from '../types';
+import { View, ChatMessage, Role, SearchResult } from '../types';
 import { INITIAL_MESSAGES } from '../constants';
 import { vscode } from './services/vscodeService';
 
-type PerplexityModel = string;
+type PerplexityModel = 'sonar' | 'sonar-pro' | 'sonar-reasoning' | 'sonar-reasoning-pro' | 'sonar-deep-research';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>(View.Chat);
@@ -48,9 +48,6 @@ const App: React.FC = () => {
 
     window.addEventListener('message', handleMessage);
 
-    // The webview now gets all its initial data from the 'settings:get' call
-    // which is triggered inside the SettingsPanel component.
-    // We also trigger it here to get the models list for the settings panel.
     vscode.postMessage({ command: 'settings:get' });
 
     return () => {
@@ -71,7 +68,6 @@ const App: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    // Send message with the new data structure
     vscode.postMessage({
       command: 'search',
       data: { text: content }

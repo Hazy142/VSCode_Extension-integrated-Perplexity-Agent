@@ -29,4 +29,4 @@ try {
     };
 }
 
-export const vscodeApi = vscode;
+export { vscode };
