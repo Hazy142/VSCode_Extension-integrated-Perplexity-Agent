@@ -1,0 +1,17 @@
+# Ignore dev and build files
+node_modules/
+webview/
+coverage/
+test/
+src/
+tsconfig.json
+jest.config.js
+*.log
+.vscode/
+.vscode-test/
+
+# Ignore lockfiles
+package-lock.json
+
+# Ignore OS files
+.DS_Store

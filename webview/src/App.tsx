@@ -21,16 +21,22 @@ const App: React.FC = () => {
         case 'updateModels':
           setModels(message.data || []);
           break;
-        case 'searchResult': {
-          setIsLoading(false);
-          const assistantMessage: ChatMessage = {
-            id: Date.now().toString(),
-            role: Role.Assistant,
-            content: message.data as SearchResult,
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, assistantMessage]);
-          break;
+        case 'stream:chunk': {
+            setMessages(prev => {
+                const lastMessage = prev[prev.length - 1];
+                if (lastMessage && lastMessage.role === Role.Assistant) {
+                    // Ensure content is treated as a string for concatenation
+                    const currentContent = typeof lastMessage.content === 'string' ? lastMessage.content : '';
+                    lastMessage.content = currentContent + message.data;
+                    return [...prev.slice(0, -1), lastMessage];
+                }
+                return prev;
+            });
+            break;
+        }
+        case 'stream:end': {
+            setIsLoading(false);
+            break;
         }
         case 'error': {
           setIsLoading(false);
@@ -65,7 +71,13 @@ const App: React.FC = () => {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const assistantMessage: ChatMessage = {
+      id: (Date.now() + 1).toString(),
+      role: Role.Assistant,
+      content: '',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMessage, assistantMessage]);
     setIsLoading(true);
 
     vscode.postMessage({

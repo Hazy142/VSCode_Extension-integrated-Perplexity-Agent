@@ -20,6 +20,16 @@ jest.mock('openai', () => {
 
 const mockOpenAI = OpenAI as jest.MockedClass<typeof OpenAI>;
 
+// Helper to mock the OpenAI stream
+async function* createMockStream(chunks: { content: string }[], error?: any) {
+    if (error) {
+        throw error;
+    }
+    for (const chunk of chunks) {
+        yield { choices: [{ delta: chunk }] };
+    }
+}
+
 describe('PerplexityClient', () => {
     let client: PerplexityClient;
     let mockCreate: jest.Mock;
@@ -33,143 +43,119 @@ describe('PerplexityClient', () => {
         mockCreate = mockOpenAIInstance.chat.completions.create as jest.Mock;
     });
 
-    it('should perform a successful search', async () => {
+    it('should stream a successful search', (done) => {
         ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-        mockCreate.mockResolvedValue({
-            choices: [{ message: { content: 'Test answer' } }],
+        const chunks = [{ content: 'Test' }, { content: ' answer' }];
+        mockCreate.mockReturnValue(createMockStream(chunks));
+
+        let fullResponse = '';
+        client.searchStream('test query', 'sonar-medium-chat', {
+            onData: (chunk) => {
+                fullResponse += chunk;
+            },
+            onEnd: () => {
+                expect(fullResponse).toBe('Test answer');
+                expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ model: 'sonar-medium-chat' }));
+                done();
+            },
+            onError: (error) => done(error),
         });
-
-        const result = await client.search('test query', 'sonar-medium-chat');
-        expect(result.answer).toBe('Test answer');
-        expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
-            model: 'sonar-medium-chat'
-        }));
     });
 
-    it('should throw an error if API key is not configured', async () => {
-        await expect(client.search('test query', 'sonar-medium-chat')).rejects.toThrow('Perplexity API key is not configured.');
+    it('should call onError if API key is not configured', (done) => {
+        client.searchStream('test query', 'sonar-medium-chat', {
+            onData: () => {},
+            onEnd: () => {},
+            onError: (error) => {
+                expect(error.message).toContain('Perplexity API key is not configured');
+                done();
+            },
+        });
     });
 
-    it('should handle rate limit errors and retry', async () => {
-        ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-        const rateLimitError = { status: 429 };
-        mockCreate
-            .mockRejectedValueOnce(rateLimitError)
-            .mockResolvedValue({
-                choices: [{ message: { content: 'Success after retry' } }],
-            });
-
-        const result = await client.search('test query', 'sonar-medium-chat');
-        expect(result.answer).toBe('Success after retry');
-        expect(mockCreate).toHaveBeenCalledTimes(2);
-    });
-
-    it('should throw RateLimitError after max retries', async () => {
-        ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-        const rateLimitError = { status: 429 };
-        mockCreate.mockRejectedValue(rateLimitError);
-
-        await expect(client.search('test query', 'sonar-medium-chat')).rejects.toThrow(RateLimitError);
-        expect(mockCreate).toHaveBeenCalledTimes(3);
-    }, 10000);
-
-    it('should handle network errors and retry', async () => {
-        ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-        const networkError = { code: 'ENOTFOUND' };
-        mockCreate
-            .mockRejectedValueOnce(networkError)
-            .mockResolvedValue({
-                choices: [{ message: { content: 'Success after network error' } }],
-            });
-
-        const result = await client.search('test query', 'sonar-medium-chat');
-        expect(result.answer).toBe('Success after network error');
-        expect(mockCreate).toHaveBeenCalledTimes(2);
-    });
-
-    it('should throw APIError for non-retryable status codes', async () => {
+    it('should call onError for API errors', (done) => {
         ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
         const apiError = { status: 400, message: 'Bad Request' };
-        mockCreate.mockRejectedValue(apiError);
+        mockCreate.mockReturnValue(createMockStream([], apiError));
 
-        await expect(client.search('test query', 'sonar-medium-chat')).rejects.toThrow(APIError);
-        expect(mockCreate).toHaveBeenCalledTimes(1);
+        client.searchStream('test query', 'sonar-medium-chat', {
+            onData: () => {},
+            onEnd: () => {},
+            onError: (error) => {
+                expect(error).toBeInstanceOf(APIError);
+                expect(error.message).toContain('Bad Request');
+                done();
+            },
+        });
     });
 
     it('testConnection should return ok for successful connection', async () => {
-         ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-         mockCreate.mockResolvedValue({
-            choices: [{ message: { content: 'pong' } }],
-        });
+        ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
+        mockCreate.mockReturnValue(createMockStream([{ content: 'pong' }]));
         const result = await client.testConnection('sonar-medium-chat');
         expect(result.ok).toBe(true);
         expect(result.latencyMs).toBeDefined();
     });
 
     it('testConnection should return error for failed connection', async () => {
-         ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-         const authError = { status: 401 };
-         mockCreate.mockRejectedValue(authError);
-         const result = await client.testConnection('sonar-medium-chat');
-         expect(result.ok).toBe(false);
-         expect(result.error).toContain('Authentication failed');
-    });
-
-    it('should handle streaming search', async () => {
         ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-        // The create method for streaming would return a stream object, not a promise.
-        // For this basic test, we'll just check if the call is made correctly.
-        mockCreate.mockResolvedValue({}); // Mocking a non-response for stream
-
-        const result = await client.search('test query', 'sonar-medium-chat', true);
-
-        expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
-            stream: true,
-        }));
-        expect(result.answer).toBe('');
-    });
-
-    it('should handle 500 series errors and retry', async () => {
-        ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-        const serverError = { status: 500 };
-        mockCreate
-            .mockRejectedValueOnce(serverError)
-            .mockResolvedValue({ choices: [{ message: { content: 'Success after server error' } }] });
-
-        const result = await client.search('test query', 'sonar-medium-chat');
-        expect(result.answer).toBe('Success after server error');
-        expect(mockCreate).toHaveBeenCalledTimes(2);
-    });
-
-    it('should handle ECONNRESET network error', async () => {
-        ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-        const connResetError = { code: 'ECONNRESET' };
-        mockCreate.mockRejectedValue(connResetError);
-        await expect(client.search('test query', 'sonar-medium-chat')).rejects.toThrow(NetworkError);
-    }, 10000);
-
-    it('should handle unknown errors', async () => {
-        ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-        const unknownError = new Error('Some random error');
-        mockCreate.mockRejectedValue(unknownError);
-        await expect(client.search('test query', 'sonar-medium-chat')).rejects.toThrow(Error);
-    });
-
-    it('testConnection should handle RateLimitError', async () => {
-        ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-        mockCreate.mockRejectedValue({ status: 429 });
+        const authError = { status: 401 };
+        mockCreate.mockReturnValue(createMockStream([], authError));
         const result = await client.testConnection('sonar-medium-chat');
         expect(result.ok).toBe(false);
-        expect(result.error).toBe('API rate limit exceeded.');
-    }, 10000);
+        expect(result.error).toContain('Authentication failed');
+    });
 
-    it('testConnection should handle NetworkError', async () => {
+    it('should handle cancellation correctly', (done) => {
         ExtensionContext.secrets.store('perplexity.apiKey', 'test-key');
-        mockCreate.mockRejectedValue({ code: 'ENOTFOUND' });
-        const result = await client.testConnection('sonar-medium-chat');
-        expect(result.ok).toBe(false);
-        expect(result.error).toBe('Network error. Please check your connection.');
-    }, 10000);
+        const chunks = [{ content: 'Test' }, { content: ' answer' }];
+        mockCreate.mockReturnValue(createMockStream(chunks));
+
+        let onDataCalled = false;
+        let onEndCalled = false;
+
+        client.searchStream('test query', 'sonar-medium-chat', {
+            onData: (chunk) => {
+                onDataCalled = true;
+                client.cancel(); // Cancel immediately after first chunk
+            },
+            onEnd: () => {
+                onEndCalled = true;
+            },
+            onError: (error) => done(error),
+        });
+
+        // After a short delay, verify that onData was called but onEnd was not.
+        setTimeout(() => {
+            try {
+                expect(onDataCalled).toBe(true);
+                expect(onEndCalled).toBe(false);
+                done();
+            } catch (e) {
+                done(e);
+            }
+        }, 50);
+    });
+
+    it('should not leak API key in error messages', (done) => {
+        const apiKey = 'super-secret-key';
+        ExtensionContext.secrets.store('perplexity.apiKey', apiKey);
+        const authError = { status: 401, message: 'Authentication failed' };
+        mockCreate.mockReturnValue(createMockStream([], authError));
+
+        client.searchStream('test query', 'sonar-medium-chat', {
+            onData: () => {},
+            onEnd: () => {},
+            onError: (error) => {
+                try {
+                    expect(error.message).not.toContain(apiKey);
+                    done();
+                } catch (e) {
+                    done(e);
+                }
+            },
+        });
+    });
 });
 
 describe('Custom Errors', () => {

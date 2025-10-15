@@ -40,12 +40,15 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile && npm run build:webview",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./tsconfig.json",
     "build:webview": "npm run build --prefix webview",
     "watch": "tsc -watch -p ./tsconfig.json",
     "lint": "eslint src --ext ts",
-    "test": "jest"
+    "test": "jest",
+    "build:production": "npm run compile && npm run build:webview",
+    "build:extension-only": "npm run compile",
+    "package": "npm run build:extension-only && vsce package"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -54,6 +57,7 @@
     "@types/node": "^18.19.3",
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.3.9",
+    "@vscode/vsce": "^2.23.0",
     "glob": "^11.0.3",
     "jest": "^30.2.0",
     "mocha": "^11.7.4",

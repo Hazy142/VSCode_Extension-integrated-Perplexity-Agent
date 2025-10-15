@@ -29,8 +29,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isLoading, onSe
         ))}
         {isLoading && <ChatMessage isLoading={true} />}
         <div ref={messagesEndRef} />
-      </div>
-      <div className="p-4 md:p-6 border-t border-gray-700/50 bg-[#1e1e1e]">
+import { vscode } from '../services/vscodeService';
+
+// ... (other imports)
+
+// ... (interface definition)
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, isLoading, onSendMessage }) => {
+  // ... (hooks)
+
+  const handleCancel = () => {
+    vscode.postMessage({ command: 'search:cancel' });
+  };
+
+  return (
+    // ... (rest of the component)
+      <div className="p-4 md:p-6 border-t border-gray-700/50 bg-[#1e1e1e] text-center">
+        {isLoading && (
+          <button
+            onClick={handleCancel}
+            className="mb-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md text-white transition-colors"
+          >
+            Cancel
+          </button>
+        )}
         <ChatInput onSendMessage={onSendMessage} isLoading={isLoading} />
       </div>
     </div>
