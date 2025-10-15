@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import { SettingsPanel } from './components/SettingsPanel';
-import { View, ChatMessage, Role, SearchResult } from '../types';
+import { View, ChatMessage, Role } from '../types';
 import { INITIAL_MESSAGES } from '../constants';
 import { vscode } from './services/vscodeService';
 
@@ -12,57 +12,57 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<View>(View.Chat);
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [models, setModels] = useState<PerplexityModel[]>([]);
+  const [models] = useState<PerplexityModel[]>([]); // ✅ setModels removed
+  const [currentAssistantMessageId, setCurrentAssistantMessageId] = useState<string>('');
 
+  // Message Handler for Backend → Frontend communication
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
-      switch (message.command) {
-        case 'updateModels':
-          setModels(message.data || []);
-          break;
-        case 'stream:chunk': {
-            setMessages(prev => {
-                const lastMessage = prev[prev.length - 1];
-                if (lastMessage && lastMessage.role === Role.Assistant) {
-                    // Ensure content is treated as a string for concatenation
-                    const currentContent = typeof lastMessage.content === 'string' ? lastMessage.content : '';
-                    lastMessage.content = currentContent + message.data;
-                    return [...prev.slice(0, -1), lastMessage];
-                }
-                return prev;
-            });
-            break;
+    const messageHandler = (event: MessageEvent) => {
+        const { command, data } = event.data;
+        
+        switch (command) {
+            case 'stream:chunk':
+                // Update current assistant message with streaming data
+                setMessages(prev => prev.map(msg => 
+                    msg.id === currentAssistantMessageId 
+                        ? { ...msg, content: msg.content + data }
+                        : msg
+                ));
+                break;
+                
+            case 'stream:end':
+                console.log('✅ Stream ended, stopping loading');
+                setIsLoading(false);
+                setCurrentAssistantMessageId('');
+                break;
+                
+            case 'stream:error':
+            case 'error':
+                console.log('❌ Stream error, stopping loading');
+                setIsLoading(false);
+                setCurrentAssistantMessageId('');
+                // Update assistant message with error
+                setMessages(prev => prev.map(msg => 
+                    msg.id === currentAssistantMessageId 
+                        ? { ...msg, content: `Sorry, an error occurred. Please try again.` }
+                        : msg
+                ));
+                break;
+
+            case 'updateModels':
+                // Handle model updates if needed in the future
+                break;
         }
-        case 'stream:end': {
-            setIsLoading(false);
-            break;
-        }
-        case 'error': {
-          setIsLoading(false);
-          const errorMessage: ChatMessage = {
-            id: Date.now().toString(),
-            role: Role.Assistant,
-            content: `An error occurred: ${message.message}`,
-            timestamp: new Date(),
-          };
-          setMessages(prev => [...prev, errorMessage]);
-          break;
-        }
-      }
     };
-
-    window.addEventListener('message', handleMessage);
-
-    vscode.postMessage({ command: 'settings:get' });
-
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, []);
+    
+    window.addEventListener('message', messageHandler);
+    return () => window.removeEventListener('message', messageHandler);
+  }, [currentAssistantMessageId]);
 
   const handleSendMessage = useCallback((content: string) => {
     if (isLoading || !content.trim()) return;
+
+    console.log('🚀 Sending message:', content);
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -74,12 +74,15 @@ const App: React.FC = () => {
     const assistantMessage: ChatMessage = {
       id: (Date.now() + 1).toString(),
       role: Role.Assistant,
-      content: '',
+      content: '', // Will be filled by streaming
       timestamp: new Date(),
     };
+    
+    setCurrentAssistantMessageId(assistantMessage.id);
     setMessages(prev => [...prev, userMessage, assistantMessage]);
     setIsLoading(true);
 
+    // Send to backend
     vscode.postMessage({
       command: 'search',
       data: { text: content }
