@@ -1,0 +1,200 @@
+# Projektplan – Erweiterung Perplexity ↔ MCP
+
+**Datum:** 15. Oktober 2025  
+**Version:** 1.1 (Erweiterung: Perplexity↔MCP-Umkehr-Architektur, Production-Hardening, Security)
+
+Dieser Projektplan erweitert die bestehende Roadmap um drei zentrale Achsen:  
+(1) Vervollständigung der VSCode-Extension (MVP→Production),  
+(2) Aufbau eines extern zugänglichen MCP-Servers der Extension für den Direktzugriff aus Perplexity (“Umkehr-Architektur” ohne API-Kosten für Code-Analysen),  
+(3) Security-, Observability- und DevEx-Hardening.  
+**Ziel:** Eine robuste, skalierbare Lösung, die sowohl VSCode-native Nutzer als auch Perplexity-Power-User adressiert.  
+*(Identisch zur Vorversion, redaktionell bereinigt)*
+
+**Deliverables:** Scaffold, API-Prototyp, MCP-Prototype, Testing-Setup, CI-Skelett.
+
+---
+
+## Perplexity VSCode Extension – Detaillierter Projektplan (Erweitert)
+
+### Executive Summary
+### Architektur-Strategie (Addendum)
+
+**Duale Betriebsart:**  
+Intern: Extension mit integriertem MCP-Server, Webview-Chat, Workspace Context.  
+Extern: HTTP/WS-exponierter MCP-Endpunkt, den Perplexity via Connector konsumiert.  
+
+**Transportvarianten:** HTTP(S) bevorzugt; alternativ WebSocket; lokal optional Named Pipe/Unix Socket.
+
+**Security-Layer:**  
+Token-basierte Authentifizierung, localhost-binding by default, feingranulare Tool-Permissions, Request/Response-Validation.
+
+**Ziel:** Kostenfreie lokale Codeanalyse aus Perplexity heraus, kombiniert mit Perplexitys Web Research und Reasoning-Modellen.
+
+---
+
+## Phase 1 – Projektvorbereitung & Setup (Woche 1–2)
+
+### Woche 1: Projektinitialisierung
+
+- Extension Scaffold (yo code), TS-Template, package/tsconfig.
+- Dev-Env: Extension Development Host, ESLint/Prettier, Git init, Jest/Mocha.
+- API-Prototyp: axios, Basic Error-Handling, Rate-Limit-Konzept, SecretStorage.
+- MCP-Server-Grundgerüst: @modelcontextprotocol/sdk, Tool-Registry, VSCode-Integration.
+- PM/CI: GitHub Repo, Issues/Milestones, Actions, Branch-Protection, README/Changelog.
+
+**Deliverables:**  
+- Solider Client, sichere Schlüsselhaltung, Webview-Basis, Host-IPC, >80% Unit-Abdeckung (Kernmodule).
+- Funktionsfähige Chat-UI, Perplexity-Search, Context Analysis, persistente History.
+- 3 Core-Tools, Agent-Integration, Permission-Basis, Tool-Tests.
+- Settings, Tool-UI, Theme-kompatibel, responsive & a11y.
+- >90% Coverage, Benchmarks erfüllt, Security-Audit bestanden, MVP stabil.
+
+### Woche 2: Core Architecture
+
+- Backend: PerplexityClient veredeln (Multi-Model, Caching, Validation, Errors).
+- Security: SecretStorage, Input Validation, Permission-Grundlagen.
+- Frontend: React Webview, Toolkit, Tailwind, Component-Architektur.
+- Messaging: Host↔Webview, State (Context API), Error Boundaries.
+- E2E-Glue + Tests.
+
+---
+
+## Phase 2 – MVP Development (Woche 3–6)
+
+### Woche 3: Chat & Basic Search
+
+- Backend: ChatProvider (History, Multi-turn)
+- SearchProvider (Quellen, Follow-ups)
+- ContextManager (Workspace, Active File, Git)
+- Frontend: ChatInterface (Markdown, Input, Loading), ResultsRenderer (Code, Quellen)
+
+### Woche 4: MCP-Server & Agent Mode
+
+- Tools: PerplexitySearchTool, WorkspaceAnalysisTool, CodeExplanationTool (Schemas, Validation, Exec, Tests).
+- VSCode Agent Mode: Copilot Chat-Integration, Tool-Registration, E2E-Tests, Performance.
+
+### Woche 5: Advanced UI
+
+- SettingsPanel (Key Wizard, Modelwahl)
+- ToolsPanel (Tool-List, History)
+- Theme/Accessibility
+- Performance (Lazy/Virt)
+
+### Woche 6: Quality Sprint
+
+- Tests: >90% Unit, E2E Flows; Fixes, Profiling, Security-Audit (XSS/Injection/SSRF).
+
+**Deliverables:**  
+- 3 zusätzliche Tools, validierte Schnittstellen, Log-Backbone.
+- Deutlich reduzierte Latenzen, stabilere Lastkurve, schnelleres Code-Finding.
+- Schnellere Developer-Flows, konfigurierbare Profile, Exportwege.
+- Härtung des externen MCP-Servers für Perplexity, dokumentierte Risiken/Mitigations.
+- Start-/Konfiguration des extern erreichbaren MCP-Servers.
+
+---
+
+## Phase 3 – Erweiterungen (Woche 7–10) [Neu strukturiert]
+
+### Woche 7: Tooling-Expansion I
+
+- Neue Tools: DocumentationTool (READMEs, JSDoc), RefactorSuggestionTool, DependencyInsightTool.
+- Validation: Zod-Schemas für alle Tool-Inputs/Outputs; Common Error Taxonomy.
+- Observability: Strukturiertes Logging (pino/winston), Korrelation IDs, Log Redaction.
+
+### Woche 8: Caching & Performance
+
+- Response-Cache (LRU + Disk option), Debounce/Coalesce, Warmup-Jobs.
+- Symbol-Index & Code-Suche: inkrementelles Indexing, Sprache-spezifische Heuristiken.
+- Git-Optimierungen: leichte Diffs, Commit-Streaming, resiliente API-Nutzung.
+
+### Woche 9: DevEx & DX-APIs
+
+- Commands API: Befehle für wiederkehrende Analysen, QuickFix-Hooks.
+- Snippet-Export: Antworten → Code Actions/Commits vorbereiten (ohne Auto-Write).
+- Config Profiles: Projekt-/Team-Profile (Model, Temperature, Limits).
+
+### Woche 10: Security Hardening
+
+- AuthN/Z für HTTP/WS-Server (lokal default: localhost + Token).
+- Permission Matrix: File Read/Write Scopes, Tool-Allowlist per Workspace.
+- Threat Modeling & Fixes (SSRF, Path Traversal, Prompt Injection Guards an Tool-Grenzen).
+
+---
+
+## Phase 4 – Umkehr-Architektur Perplexity↔MCP (Woche 11–13) [Neu]
+
+### Woche 11: Externer MCP-Transport
+
+- HTTP/WS-Transport in MCP-Server integrieren (neben StdIO).
+- Server Binding: localhost-only default, konfigurierbarer Port/Socket.
+- Health & Info Endpoints (/.well-known/mcp, /healthz) für Connector-Discovery.
+
+**Deliverables:**  
+- Perplexity nutzt lokal den VSCode-MCP ohne API-Kosten für Codeanalyse.
+- Reaktive Codekontext-Aktualisierung in Perplexity-Sessions, robuste Skalierung.
+- Releasereife Builds, observabler Betrieb, vollständige Dokumentation.
+- Enterprise-Kandidaten, Go-to-Market-Material, Community-Adoption.
+
+### Woche 12: Perplexity Connector Setup
+
+- Connector-Konfiguration erstellen (PerplexityXPC/ähnlich): Servername, Endpoint, Tool-List.
+- Smoke-Tests: Perplexity UI → Tool-Calls (workspace-analysis, code-explanation, file-read).
+- UX-Validierung: Antwortformatierung für Perplexity (knappe, quellbezogene Ausgaben).
+
+### Woche 13: Live-Workspace & Events
+
+- Live-Events: Filechange/Index-Update als Push (WS), ansonsten Poll-Fallback (HTTP).
+- Multi-Project Support: Workspace-Auswahl, Projekt-Root-Isolation, Sandboxing.
+- Rate Limits & Backpressure: Schutz vor Chat-Loop-Überlastung.
+
+---
+
+## Phase 5 – Production Readiness (Woche 14–15) [Erweitert]
+
+- CI/CD: signierte Releases, VSIX-Build-Pipeline, SBOM/Dependency-Scanning.
+- Telemetry (opt-in): anonyme Events, Performance, Fehlerraten; Privacy by design.
+- Crash-Reporting: Sentry/Alternative, PII-Redaction, Sourcemaps.
+- Docs: Admin-Guide (Connector), User-Guide (Perplexity-Workflow), Security-Guidelines.
+
+---
+
+## Optionale Phase – Enterprise & Growth (Woche 16–18)
+
+- SSO/OIDC, Policy Packs (Compliance), Offline-Mode.
+- Team-Funktionen: Shared Profiles, Tool-Permissions per Rolle.
+- Community: Beispiel-Connectoren, Tool-Boilerplates, Tutorials.
+
+---
+
+## Ressourcen & Budget (aktualisiert)
+
+- Team: 2–3 Devs (Backend/Fullstack, Frontend, optional DevOps).
+- Zeit: 14–18 Wochen bis Production.
+- Laufende Kosten: primär CI, Monitoring; Codeanalyse lokal → keine Perplexity-API-Kosten für MCP-Tools.
+
+---
+
+## Risiken & Mitigation (aktualisiert)
+
+- API/SDK-Änderungen: Version Pins, Kompat-Schichten, Contract-Tests.
+- Security: regelmäßige Pen-Tests, Dependency-Updates, Secret-Rotation.
+- Performance: Lasttests gegen Worst-Case (große Monorepos), progressive Degradierung.
+- Adoption: Double-Track UX (VSCode & Perplexity), klare Onboarding-Flows.
+
+---
+
+## Erfolgskriterien (aktualisiert)
+
+- MVP: <500ms Tool-Latenz (Cache-Hit), <2.5s Cold-Path, 4.3+ Rating, 1.500 Downloads/30T.
+- 6 Monate: 12k aktive Nutzer, 4.5+ Rating, 150+ Stars, 30% Perplexity-Nutzung via MCP.
+- 12 Monate: 60k Downloads, 10% Premium-Adoption, 8+ Enterprise-Piloten.
+
+---
+
+## Nächste Schritte (konkret)
+
+1. HTTP/WS-Transport in MCP-Server implementieren (Feature-Flag).
+2. Tool-Suite vervollständigen (Workspace/Code/Docs/Deps).
+3. Connector-Konfiguration für Perplexity erstellen + Testplan.
+4. Security-Hardening (Token, Scopes, Validation).
+5. Docs & Demos (Onboarding, Beispiel-Workflows, Troubleshooting).
