@@ -125,7 +125,7 @@ export class ContextManager {
 
             const fileContext: FileContext = {
                 filePath,
-                content,
+                content: content.substring(0, 2000),
                 symbols,
                 languageId: document.languageId,
             };
@@ -185,26 +185,31 @@ export class ContextManager {
     private async getGitContext(rootPath: string): Promise<GitContext | undefined> {
         try {
             const gitExtension = vscode.extensions.getExtension('vscode.git');
-            if (!gitExtension?.isActive) {
-                await gitExtension?.activate();
+            if (!gitExtension) {
+                console.warn('Git extension not found.');
+                return undefined;
             }
-            const api = gitExtension?.exports.getAPI(1);
+            if (!gitExtension.isActive) {
+                await gitExtension.activate();
+            }
+            const api = gitExtension.exports.getAPI(1);
 
             if (api && api.repositories.length > 0) {
                 const repo = api.repositories[0];
                 const head = repo.state.HEAD;
-                const lastCommit = (await repo.getCommits({ limit: 1 }))[0];
+
+                const lastCommit = head ? {
+                    hash: head.commit || 'unknown',
+                    message: head.message || 'No commit message',
+                    author: head.authorName || 'unknown',
+                    date: head.commitDate?.toISOString() || 'unknown',
+                } : undefined;
 
                 return {
                     branch: head?.name || 'unknown',
-                    status: (await repo.getStatus()).toString(), // Simplified
+                    status: `Changes: ${repo.state.workingTreeChanges.length}`,
                     remoteUrl: head?.upstream?.remote,
-                    lastCommit: lastCommit ? {
-                        hash: lastCommit.hash,
-                        message: lastCommit.message,
-                        author: lastCommit.authorName || 'unknown',
-                        date: lastCommit.commitDate?.toISOString() || 'unknown',
-                    } : undefined,
+                    lastCommit: lastCommit,
                 };
             }
         } catch (error: any) {
