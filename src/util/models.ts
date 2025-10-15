@@ -3,7 +3,8 @@ export const PerplexityModels = [
   "sonar-pro",
   "sonar-reasoning",
   "sonar-reasoning-pro",
-  "sonar-deep-research"
+  "sonar-deep-research",
+  "sonar-medium-chat"
 ] as const;
 
 export type PerplexityModel = typeof PerplexityModels[number];

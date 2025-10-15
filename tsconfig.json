@@ -11,6 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
       "@modelcontextprotocol/sdk/server/mcp": [

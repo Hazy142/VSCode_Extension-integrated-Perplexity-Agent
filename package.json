@@ -45,23 +45,26 @@
     "build:webview": "npm run build --prefix webview",
     "watch": "tsc -watch -p ./tsconfig.json",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/src/test/runTest.js"
+    "test": "jest"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
+    "@types/jest": "^30.0.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^18.19.3",
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.3.9",
     "glob": "^11.0.3",
+    "jest": "^30.2.0",
     "mocha": "^11.7.4",
+    "ts-jest": "^29.4.5",
     "typescript": "^5.3.3"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.10.1",
     "@types/lru-cache": "^7.10.9",
-    "axios": "^1.6.8",
     "lru-cache": "^11.2.2",
+    "openai": "^6.3.0",
     "zod": "^3.22.4"
   }
 }
