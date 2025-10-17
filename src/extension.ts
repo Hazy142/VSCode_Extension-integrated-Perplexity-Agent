@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
-import { startMCPServer } from './services/MCPServer';
-import { ChildProcess } from 'child_process';
+import { runMCPServer, MCPServerWrapper } from './services/MCPServer';
 import { ChatViewProvider } from './ChatViewProvider';
 import { ContextManager } from './services/ContextManager';
 
-export let mcpServerProcess: ChildProcess | undefined;
+export let mcpServer: MCPServerWrapper | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('[Perplexity] Extension is activating...');
@@ -30,14 +29,14 @@ export function activate(context: vscode.ExtensionContext) {
         });
         console.log('[Perplexity] Step 2: ✅ Event listeners configured');
 
-        // SCHRITT 3: MCP Server (wahrscheinlicher Crashpoint)
-        console.log('[Perplexity] Step 3: Starting MCP Server...');
-        mcpServerProcess = startMCPServer(context);
-        console.log('[Perplexity] Step 3: ✅ MCP Server started:', !!mcpServerProcess);
+        // SCHRITT 3: MCP Server
+        console.log('[Perplexity] Step 3: Starting in-process MCP Server...');
+        mcpServer = runMCPServer(context);
+        console.log('[Perplexity] Step 3: ✅ MCP Server running');
 
         // SCHRITT 4: ChatViewProvider
         console.log('[Perplexity] Step 4: Creating ChatViewProvider...');
-        const chatProvider = new ChatViewProvider(context);
+        const chatProvider = new ChatViewProvider(context, mcpServer);
         console.log('[Perplexity] Step 4: ✅ ChatViewProvider created');
 
         // SCHRITT 5: WebView Registration
@@ -85,9 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 export function deactivate() {
     console.log('[Perplexity] Deactivating extension...');
-    if (mcpServerProcess) {
-        mcpServerProcess.kill();
-        mcpServerProcess = undefined;
-    }
+    // No process to kill in the new architecture
+    mcpServer = undefined;
     console.log('[Perplexity] Extension deactivated.');
 }

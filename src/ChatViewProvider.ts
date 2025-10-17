@@ -5,6 +5,7 @@ import { PerplexityClient } from './services/PerplexityClient';
 import { PerplexityModel, PerplexityModels } from './util/models';
 import { ContextManager } from './services/ContextManager';
 import { ContextMessage, ExtensionSettings, SettingsMessage } from './types/messages';
+import { MCPServerWrapper } from './services/MCPServer';
 
 const DEFAULT_SETTINGS: ExtensionSettings = {
     defaultModel: 'sonar',
@@ -20,8 +21,11 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     private _contextManager: ContextManager;
     private _settings: ExtensionSettings;
 
-    constructor(private readonly _context: vscode.ExtensionContext) {
-        this._perplexityClient = new PerplexityClient(this._context);
+    constructor(
+        private readonly _context: vscode.ExtensionContext,
+        private readonly mcpServer: MCPServerWrapper
+    ) {
+        this._perplexityClient = new PerplexityClient(this._context, this.mcpServer);
         this._contextManager = ContextManager.getInstance();
         // Load settings from global state, using defaults if not present
         this._settings = this._context.globalState.get('perplexity.settings', DEFAULT_SETTINGS);
@@ -103,42 +107,22 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         if (!this._view) return;
         
         try {
-            console.log('[ChatViewProvider] Starting search for:', text);
+            console.log('[ChatViewProvider] Starting tool-enabled search for:', text);
             
-            let prompt = text;
-            if (this._settings.enrichWorkspaceContext) {
-                const workspaceContext = await this._contextManager.getWorkspaceContext();
-                if (workspaceContext) {
-                    const tech = [...workspaceContext.languages, ...workspaceContext.frameworks].join(', ');
-                    prompt = `[WORKSPACE: ${workspaceContext.projectType} - ${tech}] ${prompt}`;
-                }
-            }
-            if (this._settings.enrichActiveFileContext) {
-                const activeFileContext = await this._contextManager.getActiveFileContext();
-                if (activeFileContext) {
-                    const fileName = path.basename(activeFileContext.filePath);
-                    prompt = `[CURRENT_FILE: ${fileName} (${activeFileContext.languageId})] ${prompt}`;
-                }
-            }
-
-            console.log('[ChatViewProvider] Starting stream with enriched prompt');
-            
-            this._perplexityClient.searchStream(prompt, this._settings.defaultModel, {
+            // The new client handles the entire tool-calling loop.
+            // We no longer stuff context into the prompt manually.
+            this._perplexityClient.searchStream(text, this._settings.defaultModel, {
                 onData: (chunk) => {
-                    console.log('[ChatViewProvider] Received chunk:', chunk.length, 'chars');
                     this._view?.webview.postMessage({ command: 'stream:chunk', data: chunk });
                 },
                 onEnd: () => {
-                    console.log('[ChatViewProvider] Stream completed');
                     this._view?.webview.postMessage({ command: 'stream:end' });
                 },
                 onError: (error) => {
-                    console.error('[ChatViewProvider] Stream error:', error);
                     this._view?.webview.postMessage({ command: 'stream:error', message: error.message });
                 }
             });
         } catch (error: any) {
-            console.error('[ChatViewProvider] Search failed:', error);
             this._view?.webview.postMessage({ command: 'stream:error', message: error.message });
         }
     }
